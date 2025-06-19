@@ -227,6 +227,6 @@ For an example of how a plugin file should be structured can be found in [exampl
 
 ### For questions, feel free to reach out:
 
-#### 📩 Email: softshoes67@gmail.com
+#### 📩 Email: wuxnz.dev@gmail.com
 
 #### 🌍 GitHub: wuxnz
