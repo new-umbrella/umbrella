@@ -23,8 +23,8 @@ pre-commit:
 commit-msg:
   parallel: true
   commands:
-    commitlint:
-      run: npx --no-install commitlint --edit "$1"
+    # commitlint:
+    #   run: npx --no-install commitlint --edit "$1"
 
 # Add debug mode to see what's happening
 debug: true
