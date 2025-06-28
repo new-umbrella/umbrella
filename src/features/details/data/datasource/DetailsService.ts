@@ -10,24 +10,24 @@ import {Plugin} from '../../../plugins/domain/entities/Plugin';
 export const DetailsService = {
   fetchDetails: async (
     id: string,
-    plugin: Plugin,
+    plugin: Plugin
   ): Promise<Status<DetailedItem>> => {
     const result = (await PluginService.runPluginMethodInSandbox(
       plugin.pluginPath!,
       'getItemDetails',
-      [id],
+      [id]
     )) as Status<DetailedItem>;
 
     return result;
   },
   getItemMedia: async (
     id: string,
-    plugin: Plugin,
+    plugin: Plugin
   ): Promise<(RawAudio | ExtractorAudio | RawVideo | ExtractorVideo)[]> => {
     const result = (await PluginService.runPluginMethodInSandbox(
       plugin.pluginPath!,
       'getItemMedia',
-      [id],
+      [id]
     )) as Status<(RawAudio | ExtractorAudio | RawVideo | ExtractorVideo)[]>;
 
     if (result.status === 'error') {

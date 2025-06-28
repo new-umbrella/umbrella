@@ -2,12 +2,12 @@ pre-commit:
   parallel: true
   follow: true
   commands:
-    # lint:
-    #   glob: '*.{js,ts,jsx,tsx,json,md,html,css}'
-    #   run: |
-    #     echo "Running ESLint..."
-    #     npx eslint --fix {staged_files}
-    #     echo "ESLint completed ✅"
+    lint:
+      glob: '*.{js,ts,jsx,tsx,json,md,html,css}'
+      run: |
+        echo "Running ESLint..."
+        npx eslint --fix {staged_files}
+        echo "ESLint completed ✅"
     format:
       glob: '*.{js,ts,jsx,tsx,json}'
       run: |
