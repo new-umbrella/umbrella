@@ -41,7 +41,11 @@ const CardList: React.FC<CardListProps> = ({
   const cardStyle = [styles.card, style];
 
   return (
-    <Card style={cardStyle} onPress={handlePress} {...props}>
+    <Card
+      style={cardStyle}
+      onPress={handlePress}
+      {...props}
+      elevation={undefined}>
       <Card.Cover
         source={
           showPlaceholder

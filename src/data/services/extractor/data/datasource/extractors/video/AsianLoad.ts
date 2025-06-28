@@ -18,6 +18,7 @@ import {
   getURLParameter,
 } from '../../../../../../../core/utils/urlUtils';
 import {Subtitle} from '../../../../../../../features/plugins/data/model/media/Subtitle';
+import detectSubtitleMimeType from '../../../../../../../core/utils/detectSubtitleMimeType';
 
 class AsianLoad implements Extractor {
   name = 'asianload';
@@ -67,6 +68,8 @@ class AsianLoad implements Extractor {
       (track: any): Subtitle => ({
         url: track.file,
         language: track.kind === 'thumbnails' ? 'Default (maybe)' : track.kind,
+        name: track.kind === 'thumbnails' ? 'Default (maybe)' : track.kind,
+        mimeType: detectSubtitleMimeType(track.file),
       }),
     );
 

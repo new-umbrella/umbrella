@@ -11,6 +11,7 @@ import {ExtractorInfo} from '../../../../domain/entities/ExtractorInfo';
 import axiosClient from '../../../../../../../core/utils/network/axios';
 import {parseURL} from '../../../../../../../core/utils/urlUtils';
 import {Subtitle} from '../../../../../../../features/plugins/data/model/media/Subtitle';
+import detectSubtitleMimeType from '../../../../../../../core/utils/detectSubtitleMimeType';
 
 const substringAfter = (str: string, delimiter: string): string => {
   const index = str.indexOf(delimiter);
@@ -189,6 +190,8 @@ class RapidCloud implements Extractor {
             ? {
                 url: s.file,
                 language: s.label ? s.label : 'Thumbnails',
+                name: s.label ? s.label : 'Thumbnails',
+                mimeType: detectSubtitleMimeType(s.file),
               }
             : null,
         )

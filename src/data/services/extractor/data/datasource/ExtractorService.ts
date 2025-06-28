@@ -3,7 +3,6 @@ import ExtractorVideo from '../../../../../features/plugins/data/model/media/Ext
 import MediaType from '../../../../../features/plugins/data/model/media/MediaType';
 import RawAudio from '../../../../../features/plugins/data/model/media/RawAudio';
 import RawVideo from '../../../../../features/plugins/data/model/media/RawVideo';
-import {Extractor} from '../../domain/entities/Extractor';
 import {ExtractorInfo} from '../../domain/entities/ExtractorInfo';
 
 import Extractors from './extractors/index';
@@ -19,34 +18,31 @@ export const ExtractorService = {
   },
 
   async extract(
-    data: ExtractorVideo | ExtractorAudio,
+    data: ExtractorVideo | ExtractorAudio
   ): Promise<RawAudio[] | RawVideo[]> {
-    console.log(data);
     const extractors = this.getExtractorsByType(data.type);
-    const matchedExtractors = extractors.filter(
+    const matchedExtractors: ExtractorInfo[] = extractors.filter(
       (e: ExtractorInfo) =>
         e.patterns.some(p => data.url.match(p)) &&
-        e.extractorMediaType === data.type,
+        e.extractorMediaType === data.type
     );
-    if (!matchedExtractors.length) {
+    console.log(matchedExtractors);
+    if (matchedExtractors.length === 0) {
       throw new Error('Extractor not found');
     }
-    var sources: any[] = [];
-    var index = 0;
-    console.log('matchedExtractors', matchedExtractors);
-    for (var e in matchedExtractors) {
-      sources = [
-        ...sources,
-        ...(await matchedExtractors[index].extractors.map(e =>
-          e.execute(data),
-        )),
-      ];
+    var sources: (RawAudio | RawVideo)[] = [];
+
+    for (const extractor of matchedExtractors) {
+      for (const extract of extractor.extractors) {
+        sources.push(...(await extract.execute(data)));
+      }
     }
-    console.log('sources', sources);
+
+    sources = sources.flat();
+
     if (data.type === MediaType.ExtractorAudio) {
       return sources as RawAudio[];
     }
-    console.log('sources', sources);
     return sources as RawVideo[];
   },
 };

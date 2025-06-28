@@ -14,6 +14,7 @@ import {Extractor} from '../../../../domain/entities/Extractor';
 import {ExtractorInfo} from '../../../../domain/entities/ExtractorInfo';
 import axiosClient from '../../../../../../../core/utils/network/axios';
 import {Subtitle} from '../../../../../../../features/plugins/data/model/media/Subtitle';
+import detectSubtitleMimeType from '../../../../../../../core/utils/detectSubtitleMimeType';
 
 // Copied form https://github.com/JorrinKievit/restreamer/blob/main/src/main/extractors/smashystream.ts/smashystream.ts
 // Thanks Jorrin Kievit
@@ -161,6 +162,8 @@ class SmashyStream implements Extractor {
         result.subtitles.push({
           url: subtitle.link,
           language: subtitle.language,
+          name: subtitle.language,
+          mimeType: detectSubtitleMimeType(subtitle.link),
         });
       });
 
@@ -240,6 +243,8 @@ class SmashyStream implements Extractor {
         result.subtitles.push({
           url: subtitle.file,
           language: subtitle.label,
+          name: subtitle.label,
+          mimeType: detectSubtitleMimeType(subtitle.file),
         });
       });
 
@@ -304,6 +309,8 @@ class SmashyStream implements Extractor {
         result.subtitles.push({
           url: subtitle.link,
           language: subtitle.language,
+          name: subtitle.language,
+          mimeType: detectSubtitleMimeType(subtitle.link),
         });
       });
 

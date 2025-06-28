@@ -35,6 +35,7 @@ import {useSearchPageDataStore} from './src/features/search/presentation/state/u
 import PaginationBottomSheet from './src/features/search/presentation/components/CategorySwiper/PaginationBottomSheet';
 import {useFavoriteStore} from './src/features/details/presentation/state/useFavoriteStore';
 import FavoriteBottomSheet from './src/features/details/presentation/components/FavoriteBottomSheet';
+import MediaNavigator from './src/features/media/MediaNavigator';
 
 const Stack = createNativeStackNavigator();
 
@@ -267,6 +268,13 @@ export default function App() {
                 <Stack.Screen
                   name="pluginInfoView"
                   component={PluginInfoView}
+                  options={{
+                    headerShown: false,
+                  }}
+                />
+                <Stack.Screen
+                  name="media"
+                  component={MediaNavigator}
                   options={{
                     headerShown: false,
                   }}

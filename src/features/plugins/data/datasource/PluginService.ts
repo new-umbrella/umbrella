@@ -29,7 +29,7 @@ export const PluginService = {
       }
 
       const manifestPath =
-        RNFS.DownloadDirectoryPath +
+        RNFS.ExternalCachesDirectoryPath +
         `/${constants.APP_NAME}/` +
         `${constants.PLUGIN_FOLDER_NAME}/${
           manifestJson.author
@@ -44,7 +44,7 @@ export const PluginService = {
       await RNFS.downloadFile({
         fromUrl: manifestUrl,
         toFile: manifestPath,
-      }).promise.then(result => {});
+      });
 
       return {
         status: 'success',
@@ -101,7 +101,7 @@ export const PluginService = {
       }
 
       const pluginPath =
-        RNFS.DownloadDirectoryPath +
+        RNFS.ExternalCachesDirectoryPath +
         `/${constants.APP_NAME}/` +
         `${constants.PLUGIN_FOLDER_NAME}/${manifest.author}_${manifest.name
           .split(' ')
@@ -135,7 +135,7 @@ export const PluginService = {
     var plugins: Plugin[] = [];
 
     const pluginFolderPath =
-      RNFS.DownloadDirectoryPath +
+      RNFS.ExternalCachesDirectoryPath +
       `/${constants.APP_NAME}/` +
       `${constants.PLUGIN_FOLDER_NAME}`;
 
@@ -152,9 +152,9 @@ export const PluginService = {
       plugin.name.endsWith('.json'),
     );
 
-    const pluginFiles = pluginsFolderFiles.filter(
-      plugin => !plugin.name.endsWith('.js'),
-    );
+    // const _pluginFiles = pluginsFolderFiles.filter(
+    //   plugin => !plugin.name.endsWith('.js')
+    // );
 
     for (const manifestFile of manifestFiles) {
       const manifest = await RNFS.readFile(manifestFile.path, 'utf8');
@@ -211,7 +211,6 @@ export const PluginService = {
         var responseJson;
         try {
           responseJson = JSON.parse(response);
-          console.log('responseJson', responseJson);
           if (responseJson.status === 'error' || responseJson.data === null) {
             reject(responseJson);
           }

@@ -14,6 +14,7 @@ import {ExtractorInfo} from '../../../../domain/entities/ExtractorInfo';
 import axiosClient from '../../../../../../../core/utils/network/axios';
 import {parseURL, resolveURL} from '../../../../../../../core/utils/urlUtils';
 import {Subtitle} from '../../../../../../../features/plugins/data/model/media/Subtitle';
+import detectSubtitleMimeType from '../../../../../../../core/utils/detectSubtitleMimeType';
 
 class Voe implements Extractor {
   name = 'voe';
@@ -48,6 +49,8 @@ class Voe implements Extractor {
         subtitles.push({
           language: match[1]!,
           url: resolveURL(match[3]!, data.url),
+          name: match[1]!,
+          mimeType: detectSubtitleMimeType(resolveURL(match[3]!, data.url)),
         });
       }
 
@@ -67,6 +70,10 @@ class Voe implements Extractor {
         subtitles.push({
           language: 'thumbnails',
           url: `${parseURL(data.url).origin}${thumbnailSrc}`,
+          name: 'thumbnails',
+          mimeType: detectSubtitleMimeType(
+            `${parseURL(data.url).origin}${thumbnailSrc}`,
+          ),
         });
       }
 
@@ -75,6 +82,7 @@ class Voe implements Extractor {
         isM3U8: atob(url).includes('.m3u8'),
         name: this.name,
         type: MediaType.RawVideo,
+        subtitles: subtitles,
       });
 
       return sources;

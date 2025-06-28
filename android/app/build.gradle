@@ -121,6 +121,16 @@ android {
             universalApk true
         }
     }
+
+    // Force AndroidX dependencies to compatible versions for react-native-video
+    configurations.all {
+        resolutionStrategy {
+            force "androidx.core:core:1.13.0"
+            force "androidx.activity:activity:1.8.2"
+            force "androidx.appcompat:appcompat:1.6.1"
+            force "androidx.fragment:fragment:1.6.2"
+        }
+    }
 }
 
 dependencies {
@@ -129,6 +139,12 @@ dependencies {
     implementation project(":react-native-file-viewer")
     implementation project(':react-native-splash-screen')
     implementation project(':react-native-send-intent')
+
+    // AndroidX dependencies for react-native-video compatibility - using latest stable versions
+    implementation "androidx.core:core:1.13.0"
+    implementation "androidx.activity:activity:1.8.2" 
+    implementation "androidx.appcompat:appcompat:1.6.1"
+    implementation "androidx.fragment:fragment:1.6.2"
 
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")

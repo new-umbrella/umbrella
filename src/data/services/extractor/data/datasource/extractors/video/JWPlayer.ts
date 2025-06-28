@@ -8,6 +8,7 @@ import RawVideo from '../../../../../../../features/plugins/data/model/media/Raw
 import {Subtitle} from '../../../../../../../features/plugins/data/model/media/Subtitle';
 import {Extractor} from '../../../../domain/entities/Extractor';
 import {ExtractorInfo} from '../../../../domain/entities/ExtractorInfo';
+import detectSubtitleMimeType from '../../../../../../../core/utils/detectSubtitleMimeType';
 
 class JWPlayer implements Extractor {
   name: string = 'JWPlayer';
@@ -17,7 +18,7 @@ class JWPlayer implements Extractor {
     try {
       let success = false;
       let response: AxiosResponse | null = null;
-      let maxRetries = 5;
+      let maxRetries = 10;
       while (!success && maxRetries > 0) {
         const playerResponse = await axiosClient.get(data.url, {
           headers: {
@@ -25,23 +26,22 @@ class JWPlayer implements Extractor {
             'Content-Type': 'application/x-www-form-urlencoded',
           },
         });
-        console.log(playerResponse.data);
 
-        const videoIdRegex = /\|iframe\|(.*?)\|video_id/;
+        const videoIdRegex = /\|ajaxUrl\|(.*?)\|video_id/;
         const videoId =
           playerResponse.data
             .match(videoIdRegex)[1]
             .split('|')
             .reverse()
             .join('+') + '=';
-        console.log(videoId);
         const playerNonceRegex = /\|autoPlay\|(.*?)\|playerNonce/;
         const playerNonce = playerResponse.data.match(playerNonceRegex)[1];
-        console.log(playerNonce);
         const ajaxUrl = new URL(data.url).origin + '/wp-admin/admin-ajax.php';
-        console.log(ajaxUrl);
-        const postData = `action=get_player_data&video_id=${videoId}&player_nonce=${playerNonce}`;
-        console.log(postData);
+        const postData = new URLSearchParams();
+        postData.append('action', 'get_player_data');
+        postData.append('video_id', videoId);
+        postData.append('player_nonce', playerNonce);
+
         response = await axiosClient.post(ajaxUrl, postData, {
           headers: {
             Referer: data.url,
@@ -55,7 +55,6 @@ class JWPlayer implements Extractor {
         console.error('Failed to get player data');
         return [];
       }
-      console.log(response.data);
       if (!response.data || !response.data.success) {
         console.error('Failed to get player data:', response.data);
         return [];
@@ -63,8 +62,10 @@ class JWPlayer implements Extractor {
 
       const subtitles: Subtitle[] = response.data.subtitles.map(
         (subtitle: any) => ({
-          url: subtitle.file,
-          language: subtitle.label,
+          url: subtitle.url,
+          language: subtitle.lang,
+          name: subtitle.lang,
+          mimeType: detectSubtitleMimeType(subtitle.url),
         }),
       );
       const sources: RawVideo[] = response.data.sources.map((source: any) => ({
@@ -74,10 +75,10 @@ class JWPlayer implements Extractor {
         type: MediaType.RawVideo,
         subtitles: subtitles,
         headers: {
-          Referer: data.url,
+          Referer: data.url.split('watch?')[0],
+          'User-Agent': 'Umbrella/1.0',
         },
       }));
-      console.log(sources);
       return sources;
     } catch (error) {
       return [];

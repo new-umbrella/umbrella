@@ -87,23 +87,11 @@ const DetailsNavigator = () => {
 
   useEffect(() => {
     setFavoriteItem(item);
-  }, [item]);
+  }, [item, setFavoriteItem]);
 
   const bottomSheetRef = React.useRef<BottomSheet>(null);
 
   const extractorBottomSheetRef = React.useRef<BottomSheet>(null);
-
-  const [scrollOffset, setScrollOffset] = useState(0);
-
-  const handleScroll = (event: any) => {
-    setScrollOffset(event.nativeEvent.contentOffset.y);
-  };
-
-  const [contentHeight, setContentHeight] = useState(0);
-
-  const onContentSizeChange = (contentWidth: number, contentHeight: number) => {
-    setContentHeight(contentHeight);
-  };
 
   const [itemInFavorites, setItemInFavorites] = useState<Favorite | undefined>(
     undefined,
@@ -111,7 +99,7 @@ const DetailsNavigator = () => {
 
   useEffect(() => {
     setIsFavorited(false);
-  }, []);
+  }, [setIsFavorited]);
 
   useEffect(() => {
     const itemFoundInFavorites = currentProfile?.favorites?.filter(
@@ -126,7 +114,7 @@ const DetailsNavigator = () => {
     } else {
       setIsFavorited(false);
     }
-  }, [setIsFavorited, currentProfile?.favorites]);
+  }, []);
 
   const {
     setDetailedItem,
@@ -143,18 +131,18 @@ const DetailsNavigator = () => {
 
   useEffect(() => {
     const getRawSources = async (index: number) => {
+      console.log('media', details!.media[index].id);
       setRawSources(
-        await detailsViewModel.getItemMedia(
-          details!.media[index].id,
-          item.source!,
-        ),
+        await detailsViewModel
+          .getItemMedia(details!.media[index].id, item.source!)
+          .then(res => {
+            return res;
+          }),
       );
     };
 
     getRawSources(mediaIndex);
   }, [mediaIndex]);
-
-  console.log(rawSources);
 
   if (fetchingDetails) {
     return (
@@ -209,8 +197,6 @@ const DetailsNavigator = () => {
           />
         </Appbar.Header>
         <ScrollView
-          onScroll={handleScroll}
-          onContentSizeChange={onContentSizeChange}
           contentContainerStyle={{
             flexGrow: 1,
             height: '100%',
@@ -275,8 +261,6 @@ const DetailsNavigator = () => {
       <View style={styles.content}>
         <ScrollView
           contentContainerStyle={{flexGrow: 1, width: '100%'}}
-          onScroll={handleScroll}
-          onContentSizeChange={onContentSizeChange}
           showsVerticalScrollIndicator={false}>
           <ImageBackground
             source={
@@ -396,13 +380,6 @@ const DetailsNavigator = () => {
                     key={index}
                     onPress={async () => {
                       setMediaIndex(details!.media.indexOf(media));
-                      // console.log(media);
-                      // setRawSources(
-                      //   await detailsViewModel.getItemMedia(
-                      //     details!.media[index].id,
-                      //     item.source!,
-                      //   ),
-                      // );
                       extractorBottomSheetRef.current?.expand();
                       extractorBottomSheetRef.current?.snapToIndex(0);
                       setExtractorBottomSheetVisible(true);

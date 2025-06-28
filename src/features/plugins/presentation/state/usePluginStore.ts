@@ -3,7 +3,7 @@ import {create} from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {persist, createJSONStorage} from 'zustand/middleware';
 import {DeletePluginUsecase} from '../../domain/usecases/DeletePluginUsecase';
-import {PluginRepositoryImpl} from '../../data/repositories/PluginRepositoryImpl';
+import {PluginRepositoryImpl} from '../../data/repository/PluginRepositoryImpl';
 
 const deletePlugin = new DeletePluginUsecase(new PluginRepositoryImpl());
 

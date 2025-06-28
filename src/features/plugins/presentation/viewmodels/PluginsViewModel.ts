@@ -5,7 +5,7 @@ import ExtractorAudio from '../../data/model/media/ExtractorAudio';
 import ExtractorVideo from '../../data/model/media/ExtractorVideo';
 import RawAudio from '../../data/model/media/RawAudio';
 import RawVideo from '../../data/model/media/RawVideo';
-import {PluginRepositoryImpl} from '../../data/repositories/PluginRepositoryImpl';
+import {PluginRepositoryImpl} from '../../data/repository/PluginRepositoryImpl';
 import {Plugin} from '../../domain/entities/Plugin';
 import {PluginRepository} from '../../domain/repositories/PluginRepository';
 import {DeletePluginUsecase} from '../../domain/usecases/DeletePluginUsecase';

@@ -1,5 +1,5 @@
 import {create} from 'zustand';
-import {PluginRepositoryImpl} from '../../data/repositories/PluginRepositoryImpl';
+import {PluginRepositoryImpl} from '../../data/repository/PluginRepositoryImpl';
 import {DeletePluginUsecase} from '../../domain/usecases/DeletePluginUsecase';
 import {Plugin} from '../../domain/entities/Plugin';
 

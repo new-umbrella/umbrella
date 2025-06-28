@@ -1,7 +1,15 @@
 import {View, StyleSheet, Alert, Linking, Image} from 'react-native';
 import React, {useEffect, useMemo, useState} from 'react';
 import {ScrollView} from 'react-native-gesture-handler';
-import {ActivityIndicator, List, useTheme, Text} from 'react-native-paper';
+import {
+  ActivityIndicator,
+  List,
+  useTheme,
+  Text,
+  Portal,
+  Dialog,
+  Button,
+} from 'react-native-paper';
 import BottomSheet, {BottomSheetView} from '@gorhom/bottom-sheet';
 import {BottomSheetMethods} from '@gorhom/bottom-sheet/lib/typescript/types';
 import RawAudio from '../../../../../features/plugins/data/model/media/RawAudio';
@@ -14,13 +22,20 @@ import SendIntentAndroid from 'react-native-send-intent';
 import DetailedItem from '../../../../../features/plugins/data/model/item/DetailedItem';
 import {ExtractorViewModel} from '../viewmodels/ExtractorViewModel';
 import LazyImage from '../../../../../core/shared/components/LazyImage';
-
+import RNWebVideoCaster, {
+  WebVideoCasterOptions,
+  SubtitleTrack,
+} from 'rn-web-video-caster';
+import detectVideoMimeType from '../../../../../core/utils/detectVideoMimeType';
+import {useNavigation} from '@react-navigation/native';
+import {MediaToView} from '../../../../../features/media/domain/entities/MediaToView';
 const ExtractorSourcesBottomSheet = ({
   bottomSheetRef,
 }: {
   bottomSheetRef: React.RefObject<BottomSheetMethods>;
 }) => {
   const theme = useTheme();
+  const navigation = useNavigation();
 
   const {
     detailedItem,
@@ -37,10 +52,16 @@ const ExtractorSourcesBottomSheet = ({
   const extractorViewModel = new ExtractorViewModel();
 
   const [noSources, setNoSources] = useState<boolean>(false);
+  // State for player choice dialog
+  const [playerDialogVisible, setPlayerDialogVisible] =
+    useState<boolean>(false);
+  const [selectedMedia, setSelectedMedia] = useState<
+    RawAudio | RawVideo | null
+  >(null);
 
-  console.log(mediaIndex);
+  // console.log(mediaIndex);
 
-  console.log(rawSources);
+  // console.log(rawSources);
 
   useEffect(() => {
     const doExtraction = async () => {
@@ -142,15 +163,50 @@ const ExtractorSourcesBottomSheet = ({
         'com.instantbits.cast.webvideo',
       ).then(async isInstalled => {
         if (isInstalled) {
-          await SendIntentAndroid.openAppWithData(
-            'com.instantbits.cast.webvideo',
-            media.url,
-            'video/*',
-            {
-              title: item.name + ' - ' + item.media[index].name,
-              headers: JSON.stringify(media.headers),
-            },
-          );
+          const options: WebVideoCasterOptions = {
+            videoURL: media.url,
+            title: item.name + ' - ' + item.media[index].name,
+            posterURL: media.iconUrl,
+            headers: media.headers,
+            subtitles: media.subtitles,
+            hideVideoAddress: false,
+            position: 0, // Start at 30 seconds
+            // userAgent: media.headers?.['User-Agent'] || 'Umbrella/1.0',
+            filename:
+              item.name +
+              ' - ' +
+              item.media[index].name +
+              media.url.split('/').pop(),
+            suppressErrorMessage: false,
+            mimeType: detectVideoMimeType(media.url),
+          };
+          // RNWebVideoCaster.playVideo(options);
+          // RNWebVideoCaster.isAppInstalled((isInstalled: boolean) => {
+          //   console.log('IS INSTALLED', isInstalled);
+          // });
+          //   await SendIntentAndroid.openAppWithData(
+          //     'com.instantbits.cast.webvideo',
+          //     media.url,
+          //     'video/*',
+          //     {
+          //       title: item.name + ' - ' + item.media[index].name,
+          //       headers: JSON.stringify(media.headers),
+          //     },
+          //   );
+          // try {
+          //   await Linking.openURL(
+          //     `wvc-x-callback://open?url=${media.url}&headers=Referer:$20https://s3taku.one/`,
+          //     // ${
+          //     //   media.headers
+          //     //     ? Object.entries(media.headers)
+          //     //         .map(([key, value]) => `&${key}:%20${value}`)
+          //     //         .join('')
+          //     //     : ''
+          //     // }`,
+          //   );
+          // } catch (error) {
+          //   console.log('ERROR', error);
+          // }
         } else {
           Alert.alert(
             'Web Video Cast is not installed, would you like to install it?',
@@ -176,65 +232,126 @@ const ExtractorSourcesBottomSheet = ({
     }
   };
 
-  console.log(rawSources);
+  console.log('SOURCES', sources);
 
   return (
-    <BottomSheet
-      ref={bottomSheetRef}
-      index={0}
-      snapPoints={useMemo(() => ['50%'], [])}
-      handleStyle={{backgroundColor: theme.colors.surface}}
-      enablePanDownToClose={true}
-      enableDynamicSizing={true}
-      backgroundStyle={{
-        backgroundColor: theme.colors.surface,
-      }}
-      onClose={() => {
-        setVisible(false);
-        setExtracting(false);
-        setNoSources(false);
-        setRawSources([]);
-        setSources([]);
-      }}>
-      <BottomSheetView
-        style={{
-          ...styles.bottomSheetOptions,
+    <>
+      <BottomSheet
+        ref={bottomSheetRef}
+        index={0}
+        snapPoints={useMemo(() => ['50%'], [])}
+        handleStyle={{backgroundColor: theme.colors.surface}}
+        enablePanDownToClose={true}
+        enableDynamicSizing={true}
+        backgroundStyle={{
+          backgroundColor: theme.colors.surface,
+        }}
+        onClose={() => {
+          setVisible(false);
+          setExtracting(false);
+          setNoSources(false);
+          setRawSources([]);
+          setSources([]);
+          setPlayerDialogVisible(false);
+          setSelectedMedia(null);
         }}>
-        {sources.length < 1 ? (
-          noSources ? (
-            <Text>No Sources Found</Text>
+        <BottomSheetView
+          style={{
+            ...styles.bottomSheetOptions,
+          }}>
+          {sources.length < 1 ? (
+            noSources ? (
+              <Text>No Sources Found</Text>
+            ) : (
+              <ActivityIndicator size="large" />
+            )
           ) : (
-            <ActivityIndicator size="large" />
-          )
-        ) : (
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{
-              flexGrow: 1,
-            }}>
-            {sources.map((source, sourceIndex) => (
-              <List.Item
-                key={sourceIndex}
-                title={source.name}
-                left={(props: any) =>
-                  source.iconUrl ? (
-                    <Image source={{uri: source.iconUrl}} {...props} />
-                  ) : (
-                    <LazyImage
-                      placeholderSource="square"
-                      style={{borderRadius: 4}}
-                    />
-                  )
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{
+                flexGrow: 1,
+              }}>
+              {sources.map((source, sourceIndex) => (
+                <List.Item
+                  key={sourceIndex}
+                  title={source.name}
+                  left={(props: any) =>
+                    source.iconUrl ? (
+                      <Image source={{uri: source.iconUrl}} {...props} />
+                    ) : (
+                      <LazyImage
+                        placeholderSource="square"
+                        style={{borderRadius: 4}}
+                      />
+                    )
+                  }
+                  onPress={() => {
+                    // Navigate to MediaNavigator with the selected source
+                    const mediaToView: MediaToView = {
+                      type: (source.type === MediaType.RawVideo
+                        ? 'video'
+                        : 'audio') as MediaToView['type'],
+                      media: [source],
+                      details: detailedItem,
+                      index: 0,
+                    };
+                    (navigation as any).navigate('media', {media: mediaToView});
+                  }}
+                  onLongPress={() => {
+                    setSelectedMedia(source);
+                    setPlayerDialogVisible(true);
+                  }}
+                />
+              ))}
+            </ScrollView>
+          )}
+        </BottomSheetView>
+      </BottomSheet>
+
+      {/* Player choice dialog */}
+      <Portal>
+        <Dialog
+          visible={playerDialogVisible}
+          onDismiss={() => setPlayerDialogVisible(false)}>
+          <Dialog.Title>Select Video Player</Dialog.Title>
+          <Dialog.Content>
+            <Text>Which video player would you like to use?</Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button
+              onPress={() => {
+                setPlayerDialogVisible(false);
+                if (selectedMedia) {
+                  openMedia(
+                    selectedMedia,
+                    detailedItem,
+                    mediaIndex,
+                    'mxplayer',
+                  );
+                  setSelectedMedia(null);
                 }
-                onPress={() => {
-                  openMedia(source, detailedItem, mediaIndex);
-                }}
-              />
-            ))}
-          </ScrollView>
-        )}
-      </BottomSheetView>
-    </BottomSheet>
+              }}>
+              MX Player
+            </Button>
+            <Button
+              onPress={() => {
+                setPlayerDialogVisible(false);
+                if (selectedMedia) {
+                  openMedia(
+                    selectedMedia,
+                    detailedItem,
+                    mediaIndex,
+                    'webvideocast',
+                  );
+                  setSelectedMedia(null);
+                }
+              }}>
+              Web Video Cast
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+    </>
   );
 };
 

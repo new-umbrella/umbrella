@@ -18,6 +18,7 @@ import {
   getURLParameter,
 } from '../../../../../../../core/utils/urlUtils';
 import {Subtitle} from '../../../../../../../features/plugins/data/model/media/Subtitle';
+import detectSubtitleMimeType from '../../../../../../../core/utils/detectSubtitleMimeType';
 
 const USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36';
@@ -65,6 +66,8 @@ class GogoCDN implements Extractor {
       (track: any) => ({
         url: track.file,
         language: track.kind,
+        name: track.kind,
+        mimeType: detectSubtitleMimeType(track.file),
       }),
     );
 

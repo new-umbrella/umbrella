@@ -23,7 +23,7 @@ export const SearchService = {
         'search',
         [query],
       ).then(res => res.data)) as Category;
-      
+
       if (category) {
         category.source = plugin; // Attach the plugin as the source to the category
 
@@ -39,12 +39,8 @@ export const SearchService = {
     }
   },
   async search(): Promise<Category[]> {
-    const {
-      setResults,
-      setPluginsToSearch,
-      sourceTypesToSearch,
-      query,
-    } = useSearchPageDataStore.getState();
+    const {setResults, setPluginsToSearch, sourceTypesToSearch, query} =
+      useSearchPageDataStore.getState();
     const plugins = usePluginStore.getState().plugins;
     setResults([]);
 
