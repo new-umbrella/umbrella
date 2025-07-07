@@ -75,3 +75,4 @@ yarn-error.log
 
 # Roo
 .roo
+.roo/mcp.json
