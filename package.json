@@ -8,7 +8,9 @@
     "lint": "eslint .",
     "start": "react-native start",
     "format": "prettier --write \"**/*.{js,ts,tsx,json}\"",
-    "test": "jest"
+    "test": "jest --modulePathIgnorePatterns=\"<rootDir>/(android|nodejs-assets)/\" --setupFilesAfterEnv=\"<rootDir>/jest.setup.js\" -- __tests__/integration/searchService.test.ts",
+    "test:debug": "jest --detectOpenHandles",
+    "test:clear": "jest --clearCache"
   },
   "dependencies": {
     "@gorhom/bottom-sheet": "^5",
@@ -69,21 +71,26 @@
     "@react-native/eslint-config": "0.76.5",
     "@react-native/metro-config": "0.76.5",
     "@react-native/typescript-config": "0.76.5",
-    "@types/": "react-navigation/stack",
+    "@testing-library/react-native": "^13.2.0",
     "@types/crypto-js": "^4.2.2",
+    "@types/jest": "^30.0.0",
     "@types/node": "^22.15.30",
     "@types/react": "^18.2.6",
     "@types/react-lazy-load-image-component": "^1.6.4",
     "@types/react-test-renderer": "^18.0.0",
     "babel-jest": "^29.6.3",
     "commitlint": "^19.8.1",
+    "detox": "^20.40.0",
     "eslint": "^9.28.0",
     "eslint-plugin-prettier": "^5.4.1",
     "jest": "^29.6.3",
     "prettier": "2.8.8",
     "react-test-renderer": "18.3.1",
     "reactotron-react-native": "^5.1.12",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "ts-jest": "^29.1.2",
+    "metro-react-native-babel-preset": "0.76.5",
+    "@react-native-async-storage/async-storage": "^2.1.1"
   },
   "engines": {
     "node": ">=18"
@@ -91,5 +98,21 @@
   "resolutions": {
     "react-native-folder-picker/react-native": "0.76.5"
   },
-  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e",
+  "jest": {
+    "preset": "react-native",
+    "transform": {
+      "^.+\\.js$": "babel-jest",
+      "^.+\\.tsx?$": "ts-jest/legacy"
+    },
+    "transformIgnorePatterns": [
+      "node_modules/(?!(react-native|@react-native|@react-navigation)/)"
+    ]
+  },
+  "babel": {
+    "presets": ["module:metro-react-native-babel-preset"],
+    "plugins": [
+      "@babel/plugin-transform-modules-commonjs"
+    ]
+  }
 }

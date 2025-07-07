@@ -106,7 +106,7 @@ const PluginInfoView = () => {
         {plugin.bannerImageUrl !== undefined ? (
           <>
             <ImageBackground
-              resizeMode="center"
+              resizeMode="contain"
               source={
                 showPlaceholder
                   ? require('../../../../../assets/images/placeholders/wide.jpg')
