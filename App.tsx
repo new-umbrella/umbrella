@@ -280,26 +280,29 @@ export default function App() {
                   }}
                 />
               </Stack.Navigator>
-              <View>
+              <View testID="status-bar">
                 <StatusBar
+                  translucent={true}
                   backgroundColor={colorScheme === 'dark' ? '#000' : '#fff'}
                   barStyle={
                     colorScheme === 'dark' ? 'light-content' : 'dark-content'
                   }
                 />
               </View>
-              <InstallPluginDialog />
+              <View accessibilityLabel="install-plugin-dialog"><InstallPluginDialog /></View>
               {extractorBottomSheetVisible && (
-                <ExtractorSourcesBottomSheet
+                <View accessibilityLabel="extractor-sources-bottom-sheet"><ExtractorSourcesBottomSheet
                   bottomSheetRef={extractorBottomSheetRef}
                 />
               )}
 
               {searchBottomSheetVisible && (
-                <PaginationBottomSheet bottomSheetRef={searchBottomSheetRef} />
+                <PaginationBottomSheet bottomSheetRef={searchBottomSheetRef} /></View>
               )}
 
               {favoriteBottomSheetVisible && (
+                <FavoriteBottomSheet bottomSheetRef={favoriteBottomSheetRef} />
+              )}
                 <FavoriteBottomSheet bottomSheetRef={favoriteBottomSheetRef} />
               )}
             </GestureHandlerRootView>
