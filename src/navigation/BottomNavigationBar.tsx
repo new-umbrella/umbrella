@@ -31,7 +31,6 @@ import LibraryNavigator from '../features/library/LibraryNavigator';
 import {SvgUri} from 'react-native-svg';
 import {useProfileStore} from '../features/profile/presentation/state/useProfileStore';
 import PluginListView from '../features/plugins/presentation/views/PluginListView';
-import Orientation from 'react-native-orientation-locker';
 
 // BottomNavigationBar
 // This component is used to display the bottom navigation bar
@@ -205,16 +204,6 @@ const BottomNavigationBar = () => {
     },
   ]);
 
-  // Lock to portrait mode on component mount
-  useEffect(() => {
-    Orientation.lockToPortrait();
-
-    // Cleanup function to unlock orientation when component unmounts
-    return () => {
-      Orientation.unlockAllOrientations();
-    };
-  }, []);
-
   const Home = () => (
     <NavScreenWrapper title="Home">
       <HomeNavigator />
@@ -254,8 +243,12 @@ const BottomNavigationBar = () => {
   });
 
   const {height, width} = useWindowDimensions();
+  const isLandScape = width > height;
+
   const theme = useTheme();
+
   const {visible} = useBottomNavigationBarState();
+
   const navigation = useNavigation();
   const {activeProfile} = useProfileStore(state => state);
 
@@ -265,7 +258,46 @@ const BottomNavigationBar = () => {
     }
   }, [navigation, activeProfile]);
 
-  // Since we're locking to portrait mode, we always show the bottom navigation
+  if (isLandScape) {
+    return (
+      <DrawerNavigator.Navigator
+        drawerContent={props => (
+          <DrawerContent props={props} setIndex={setIndex} />
+        )}
+        initialRouteName={
+          index === 0
+            ? 'home'
+            : index === 1
+            ? 'search'
+            : index === 2
+            ? 'library'
+            : index === 3
+            ? 'plugins'
+            : index === 4
+            ? 'settings'
+            : 'home'
+        }
+        screenOptions={{
+          headerShown: false,
+          sceneStyle: {
+            backgroundColor: theme.colors.background,
+          },
+          drawerStyle: {
+            width: 80,
+            backgroundColor: theme.colors.surface,
+          },
+          drawerType: 'permanent',
+        }}
+        defaultStatus="open">
+        <DrawerNavigator.Screen name="home" component={Home} />
+        <DrawerNavigator.Screen name="search" component={Search} />
+        <DrawerNavigator.Screen name="library" component={Library} />
+        <DrawerNavigator.Screen name="plugins" component={Plugins} />
+        <DrawerNavigator.Screen name="settings" component={Settings} />
+      </DrawerNavigator.Navigator>
+    );
+  }
+
   return (
     <BottomNavigation
       navigationState={{index, routes}}

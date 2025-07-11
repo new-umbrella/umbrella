@@ -8271,9 +8271,9 @@ rimraf@~2.6.2:
   dependencies:
     glob "^7.1.3"
 
-"rn-web-video-caster@git+https://github.com/wuxnz/rn-web-video-caster":
+"rn-web-video-caster@git+https://github.com/wuxnz/rn-web-video-caster.git":
   version "0.0.3"
-  resolved "git+https://github.com/wuxnz/rn-web-video-caster#1072079579236929b18a8adbbc926bf0b79b5dc9"
+  resolved "git+https://github.com/wuxnz/rn-web-video-caster.git#1072079579236929b18a8adbbc926bf0b79b5dc9"
 
 run-parallel@^1.1.9:
   version "1.2.0"

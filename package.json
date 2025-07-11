@@ -52,7 +52,7 @@
     "react-native-vector-icons": "^10.2.0",
     "react-native-video": "6.0.0",
     "react-navigation-material-bottom-tabs": "^2.3.5",
-    "rn-web-video-caster": "git+https://github.com/wuxnz/rn-web-video-caster",
+    "rn-web-video-caster": "git+https://github.com/wuxnz/rn-web-video-caster.git",
     "yarn": "^1.22.22",
     "zustand": "^5.0.3"
   },
