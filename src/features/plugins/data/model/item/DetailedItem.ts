@@ -20,6 +20,7 @@ interface DetailedItem extends Item {
   nextMediaRelease?: string;
   otherNames?: string[];
   source?: Plugin;
+  matchPercentage?: number;
 }
 
 export default DetailedItem;

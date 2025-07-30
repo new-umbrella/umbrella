@@ -8,6 +8,7 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "allowJs": true,
+    "jsx": "react-native",
     "types": ["node"],
     "typeRoots": ["./node_modules/@types", "./src/types"]
   },

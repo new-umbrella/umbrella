@@ -1,99 +1,243 @@
-import {View, StyleSheet} from 'react-native';
-import React, {useEffect, useState} from 'react';
-import {Text} from 'react-native-paper';
-import LibraryFiltersSelector from './presentation/components/LibraryFilterSelector';
-import {useLibraryPageDataStore} from './presentation/state/useLibraryPageDataStore';
+import React, {useState, useEffect, useCallback} from 'react';
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  StatusBar,
+  SafeAreaView,
+  RefreshControl,
+  ActivityIndicator,
+  FlatList,
+  Image,
+  Dimensions,
+} from 'react-native';
+import {useTheme, Appbar, Chip, Divider, Text, Card} from 'react-native-paper';
+import {useNavigation} from '@react-navigation/native';
+import {LibraryViewModel} from './presentation/viewmodels/LibraryViewModel';
+import {LibraryPageData} from './domain/entities/LibraryPageData';
+import MediaType from '../plugins/data/model/media/MediaType';
+import SourceType from '../plugins/data/model/source/SourceType';
+import Item from '../plugins/data/model/item/Item';
 import {Favorite, FavoriteCategoryType} from './domain/entities/Favorite';
-import LibraryPageItem from './presentation/components/LibraryPageItem';
-import {ScrollView} from 'react-native-gesture-handler';
 
+/**
+ * LibraryNavigator component
+ *
+ * This component implements the library screen with a modern UI design
+ */
 const LibraryNavigator = () => {
-  const {currentProfile, categoriesToShow, setCategoriesToShow} =
-    useLibraryPageDataStore(state => state);
+  const theme = useTheme();
+  const navigation = useNavigation<any>();
 
-  const [items, setItems] = useState<Favorite[]>([]);
+  const [selectedFilter, setSelectedFilter] = useState('all');
+  const [isLoading, setIsLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const libraryViewModel = new LibraryViewModel();
+
+  // Filter items based on selected filter
+  const [favoriteData, setFavoriteData] = useState<LibraryPageData | null>(
+    null,
+  );
 
   useEffect(() => {
-    try {
-      if (categoriesToShow.length === 0) {
-        setItems(currentProfile.favorites);
-      } else {
-        setItems(
-          currentProfile.favorites?.filter(item =>
-            categoriesToShow.includes(item.category || ''),
-          ),
-        );
-      }
-    } catch (e) {}
-  }, [currentProfile, categoriesToShow]);
+    // console.log('favoriteData', favoriteData);
+    if (favoriteData?.favorites) return;
+    setFavoriteData(libraryViewModel.getFavoritesData());
+  }, [favoriteData, setFavoriteData, libraryViewModel]);
+
+  // Handle refresh
+  const handleRefresh = useCallback(async () => {
+    setFavoriteData(libraryViewModel.getFavoritesData());
+  }, []);
+
+  //Handle filter deselection
+  const handleFilterDeselection = () => {
+    setSelectedFilter('all');
+    setFavoriteData(libraryViewModel.getFavoritesData());
+  };
+
+  // Handle filter change
+  const handleFilterChange = (filter: FavoriteCategoryType) => {
+    setSelectedFilter(filter);
+    setFavoriteData({
+      ...favoriteData!,
+      favorites: libraryViewModel
+        .getFavoritesData()
+        .favorites.filter(
+          favorite => favorite.category?.toLowerCase() === filter.toLowerCase(),
+        ),
+    });
+  };
+
+  // Render library item
+  const renderLibraryItem = ({favorite}: {favorite: Favorite}) => (
+    <Card
+      style={[
+        styles.card,
+        {backgroundColor: theme.dark ? '#101010' : '#f0f0f0'},
+      ]}
+      onPress={() =>
+        navigation.navigate('details', {
+          itemId: favorite.item.id,
+          plugin: favorite.item.source,
+        })
+      }>
+      <Card.Cover
+        source={{uri: favorite.item.imageUrl}}
+        style={styles.cardImage}
+      />
+      <Card.Content
+        style={{
+          ...styles.cardContent,
+          // backgroundColor: theme.dark ? '#101010' : '#f0f0f0',
+        }}>
+        <Text variant="titleMedium" style={{color: theme.colors.onSurface}}>
+          {favorite.item.name}
+        </Text>
+        <View style={styles.sourceContainer}>
+          <Image
+            source={{uri: favorite.item.source?.iconUrl}}
+            style={styles.sourceIcon}
+          />
+          <Text
+            variant="bodyMedium"
+            style={{color: theme.colors.onSurfaceVariant}}>
+            {favorite.item.source?.name} - {favorite.item.type}
+          </Text>
+        </View>
+        <Text
+          variant="bodySmall"
+          style={{color: theme.colors.onSurfaceVariant}}>
+          {favorite.item.description}
+        </Text>
+      </Card.Content>
+    </Card>
+  );
 
   return (
-    <View>
-      {items?.length == 0 ? (
-        <View style={styles.container}>
-          <View style={styles.nothingMessage}>
-            <View
-              style={{
-                flexDirection: 'column',
-              }}>
-              <Text>Nothing Yet</Text>
-              <View style={{height: 8}} />
-              <Text>┐(︶▽︶)┌</Text>
-            </View>
-          </View>
-        </View>
-      ) : (
-        <View style={styles.itemContainer}>
-          <ScrollView
-            contentContainerStyle={{
-              flexGrow: 1,
-            }}>
-            <View style={styles.itemGrid}>
-              {items?.map((item: Favorite, index: number) => (
-                <View
-                  key={index}
-                  style={{
-                    width: '33%',
-                  }}>
-                  <LibraryPageItem item={item} />
-                </View>
-              ))}
-            </View>
-          </ScrollView>
-        </View>
-      )}
-      <View style={styles.filterContainer}>
-        <LibraryFiltersSelector />
+    <SafeAreaView
+      style={[styles.container, {backgroundColor: theme.colors.background}]}>
+      <StatusBar
+        backgroundColor={theme.colors.background}
+        barStyle={theme.dark ? 'light-content' : 'dark-content'}
+      />
+
+      {/* Header */}
+      <Appbar.Header
+        style={[styles.header, {backgroundColor: theme.colors.background}]}>
+        <Appbar.Content title="Library" />
+        <Appbar.Action icon="magnify" onPress={() => {}} />
+      </Appbar.Header>
+
+      {/* Filter chips */}
+      <View
+        style={[
+          styles.filterContainer,
+          {backgroundColor: theme.colors.surface},
+        ]}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          {Object.values(FavoriteCategoryType).map((sourceType, index) => (
+            <Chip
+              key={sourceType}
+              selected={selectedFilter === sourceType}
+              onPress={() => {
+                if (selectedFilter === sourceType) {
+                  handleFilterDeselection();
+                } else {
+                  handleFilterChange(sourceType);
+                }
+              }}
+              style={styles.chip}>
+              {sourceType}
+            </Chip>
+          ))}
+        </ScrollView>
       </View>
-    </View>
+
+      <Divider />
+
+      {/* Content area */}
+      <FlatList
+        data={favoriteData?.favorites || []}
+        renderItem={({item}) => renderLibraryItem({favorite: item})}
+        keyExtractor={item => item.id}
+        horizontal={false}
+        contentContainerStyle={styles.contentContainer}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={[theme.colors.primary]}
+          />
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyStateContainer}>
+            <Text
+              style={[
+                styles.emptyStateText,
+                {color: theme.colors.onSurfaceVariant},
+              ]}>
+              No items in your library
+            </Text>
+          </View>
+        }
+      />
+    </SafeAreaView>
   );
 };
-
-export default LibraryNavigator;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
-  itemContainer: {
+  header: {
+    elevation: 0,
+    shadowOpacity: 0,
+  },
+  filterContainer: {
+    padding: 8,
+  },
+  chip: {
+    marginHorizontal: 4,
+  },
+  contentContainer: {
+    padding: 8,
+  },
+  card: {
     flex: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 16,
-    marginLeft: '2%',
+    margin: 4,
+    elevation: 2,
+    width: '48%',
+    height: 350,
+    padding: 8,
   },
-  itemGrid: {
-    display: 'flex',
+  cardContent: {
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+  },
+  cardImage: {
+    height: '70%',
+  },
+  sourceContainer: {
     flexDirection: 'row',
-    width: '100%',
-    rowGap: 16,
-    flexWrap: 'wrap',
+    alignItems: 'center',
   },
-  nothingMessage: {
+  sourceIcon: {
+    width: 16,
+    height: 16,
+    marginRight: 8,
+  },
+  emptyStateContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 32,
   },
-  filterContainer: {},
+  emptyStateText: {
+    fontSize: 16,
+    textAlign: 'center',
+  },
 });
+
+export default LibraryNavigator;
