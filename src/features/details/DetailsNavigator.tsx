@@ -413,7 +413,7 @@ const DetailsNavigator = () => {
                         source={{
                           uri: episode.imageUrl || details.imageUrl,
                         }}
-                        blurRadius={3}
+                        // blurRadius={3}
                         style={styles.episodeThumbnail}
                       />
 
