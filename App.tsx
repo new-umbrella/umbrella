@@ -289,20 +289,18 @@ export default function App() {
                   }
                 />
               </View>
-              <View accessibilityLabel="install-plugin-dialog"><InstallPluginDialog /></View>
+              <InstallPluginDialog />
               {extractorBottomSheetVisible && (
-                <View accessibilityLabel="extractor-sources-bottom-sheet"><ExtractorSourcesBottomSheet
+                <ExtractorSourcesBottomSheet
                   bottomSheetRef={extractorBottomSheetRef}
                 />
               )}
 
               {searchBottomSheetVisible && (
-                <PaginationBottomSheet bottomSheetRef={searchBottomSheetRef} /></View>
+                <PaginationBottomSheet bottomSheetRef={searchBottomSheetRef} />
               )}
 
               {favoriteBottomSheetVisible && (
-                <FavoriteBottomSheet bottomSheetRef={favoriteBottomSheetRef} />
-              )}
                 <FavoriteBottomSheet bottomSheetRef={favoriteBottomSheetRef} />
               )}
             </GestureHandlerRootView>

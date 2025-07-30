@@ -217,7 +217,7 @@ const HomeNavigator: React.FC<HomeNavigatorProps> = () => {
       style={{...styles.container, backgroundColor: theme.colors.background}}>
       <StatusBar barStyle="light-content" backgroundColor="#000000" />
 
-      <Appbar.Header
+      {/* <Appbar.Header
         style={{
           elevation: 0,
           shadowOpacity: 0,
@@ -239,7 +239,7 @@ const HomeNavigator: React.FC<HomeNavigatorProps> = () => {
             />
           </View>
         </TouchableRipple>
-      </Appbar.Header>
+      </Appbar.Header> */}
 
       <ScrollView
         style={styles.scrollView}

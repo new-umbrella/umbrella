@@ -109,11 +109,5 @@
     "transformIgnorePatterns": [
       "node_modules/(?!(react-native|@react-native|@react-navigation)/)"
     ]
-  },
-  "babel": {
-    "presets": ["module:metro-react-native-babel-preset"],
-    "plugins": [
-      "@babel/plugin-transform-modules-commonjs"
-    ]
   }
 }

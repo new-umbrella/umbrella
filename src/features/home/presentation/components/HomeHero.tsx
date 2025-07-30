@@ -7,9 +7,12 @@ import {
   TouchableOpacity,
   ImageBackground,
 } from 'react-native';
-import {Text, Button} from 'react-native-paper';
+import {Text, Button, TouchableRipple} from 'react-native-paper';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import LinearGradient from 'react-native-linear-gradient';
+import {SvgUri} from 'react-native-svg';
+import {useNavigation} from '@react-navigation/native';
+import {useProfileStore} from '../../../profile/presentation/state/useProfileStore';
 
 const {width: screenWidth, height: screenHeight} = Dimensions.get('window');
 
@@ -36,8 +39,21 @@ const HomeHero: React.FC<HomeHeroProps> = ({
   year,
   duration,
 }) => {
+  const navigation = useNavigation<any>();
+  const {activeProfile} = useProfileStore();
+
   return (
     <View style={styles.container}>
+      <LinearGradient
+        colors={[
+          'rgba(0, 0, 0, 0.0)',
+          'rgba(0, 0, 0, 0.25)',
+          'rgba(0, 0, 0, 0.85)',
+        ]}
+        start={{x: 0, y: 1}}
+        end={{x: 0, y: 0}}
+        style={styles.containerGradient}
+      />
       <ImageBackground
         source={{uri: imageUrl}}
         style={styles.image}
@@ -45,17 +61,31 @@ const HomeHero: React.FC<HomeHeroProps> = ({
         <LinearGradient
           colors={[
             'rgba(0, 0, 0, 0.0)',
-            'rgba(0, 0, 0, 0.0)',
-            'rgba(0, 0, 0, 0.05)',
-            'rgba(0, 0, 0, 0.15)',
-            'rgba(0, 0, 0, 0.35)',
-            'rgba(0, 0, 0, 0.55)',
-            'rgba(0, 0, 0, 0.75)',
+            'rgba(0, 0, 0, 0.25)',
+            'rgba(0, 0, 0, 0.85)',
           ]}
-          locations={[0, 0.3, 0.5, 0.7, 0.85, 0.95, 1]}
+          start={{x: 0, y: 0}}
+          end={{x: 0, y: 1}}
           style={styles.gradientOverlay}
         />
 
+        <View style={styles.overlay}>
+          <TouchableRipple>
+            <View
+              style={{
+                overflow: 'hidden',
+                borderRadius: 2,
+                marginRight: 16,
+              }}>
+              <SvgUri
+                width={32}
+                height={32}
+                uri={activeProfile?.profile_image || ''}
+                onPress={() => navigation.navigate('profile' as never)}
+              />
+            </View>
+          </TouchableRipple>
+        </View>
         <View style={styles.content}>
           <Text style={styles.title} numberOfLines={2}>
             {title}
@@ -120,8 +150,16 @@ export default HomeHero;
 
 const styles = StyleSheet.create({
   container: {
-    height: screenHeight / 2,
+    height: screenHeight * 0.6,
     width: screenWidth,
+  },
+  containerGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1,
   },
   image: {
     width: '100%',
@@ -141,16 +179,25 @@ const styles = StyleSheet.create({
     right: 0,
     padding: 20,
     paddingBottom: 40,
+    zIndex: 2,
+  },
+  overlay: {
+    position: 'absolute',
+    top: 16,
+    right: 0,
+    zIndex: 2,
   },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
     color: '#F5F5F5',
     marginBottom: 8,
+    textAlign: 'center',
   },
   metadata: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 12,
   },
   metadataText: {
@@ -167,10 +214,12 @@ const styles = StyleSheet.create({
     color: '#E5E5E5',
     lineHeight: 22,
     marginBottom: 20,
+    textAlign: 'center',
   },
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 12,
   },
   button: {
