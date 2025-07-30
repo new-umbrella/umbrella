@@ -213,7 +213,7 @@ const HomeNavigator: React.FC<HomeNavigatorProps> = () => {
   const {activeProfile} = useProfileStore();
 
   return (
-    <SafeAreaView
+    <View
       style={{...styles.container, backgroundColor: theme.colors.background}}>
       <StatusBar barStyle="light-content" backgroundColor="#000000" />
 
@@ -279,7 +279,7 @@ const HomeNavigator: React.FC<HomeNavigatorProps> = () => {
         }}
         onPress={() => console.log('Gogoanime')}
       />
-    </SafeAreaView>
+    </View>
   );
 };
 

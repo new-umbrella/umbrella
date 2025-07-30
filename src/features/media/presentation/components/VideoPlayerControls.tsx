@@ -110,6 +110,7 @@ const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
+            paddingBottom: isFullscreen ? 20 : 0,
           }}>
           <TouchableOpacity style={styles.bottomButton}>
             {/* <Icon name="volume-up" size={24} color="white" /> */}

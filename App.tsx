@@ -32,7 +32,7 @@ import ExtractorSourcesBottomSheet from './src/data/services/extractor/presentat
 import {useExtractorServiceStore} from './src/data/services/extractor/presentation/state/ExtractorServiceStore';
 import BottomSheet from '@gorhom/bottom-sheet';
 import {useSearchPageDataStore} from './src/features/search/presentation/state/useSearchPageDataStore';
-import PaginationBottomSheet from './src/features/search/presentation/components/CategorySwiper/PaginationBottomSheet';
+import PaginationBottomSheet from './src/features/search/presentation/components/PaginationBottomSheet';
 import {useFavoriteStore} from './src/features/details/presentation/state/useFavoriteStore';
 import FavoriteBottomSheet from './src/features/details/presentation/components/FavoriteBottomSheet';
 import MediaNavigator from './src/features/media/MediaNavigator';
@@ -227,7 +227,7 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <View style={{flex: 1}}>
+      <SafeAreaView style={{flex: 1}}>
         <PaperProvider theme={colorScheme === 'dark' ? DarkTheme : LightTheme}>
           <NavigationContainer
             ref={navigationRef}
@@ -294,7 +294,7 @@ export default function App() {
             </GestureHandlerRootView>
           </NavigationContainer>
         </PaperProvider>
-      </View>
+      </SafeAreaView>
     </SafeAreaProvider>
   );
 }

@@ -34,18 +34,16 @@ const SettingsNavigator = () => {
   };
 
   return (
-    <SafeAreaView
+    <View
       style={[styles.container, {backgroundColor: theme.colors.background}]}>
       <StatusBar
         backgroundColor={theme.colors.background}
         barStyle={theme.dark ? 'light-content' : 'dark-content'}
       />
 
-      <Appbar.Header
-        style={[styles.header, {backgroundColor: theme.colors.background}]}>
-        {/* <Appbar.BackAction onPress={() => navigation.goBack()} /> */}
-        <Appbar.Content title="Settings" />
-      </Appbar.Header>
+      <Text variant="titleLarge" style={{margin: 16}}>
+        Settings
+      </Text>
 
       <ScrollView style={styles.scrollView}>
         {/* Account Section */}
@@ -185,7 +183,7 @@ const SettingsNavigator = () => {
           />
         </List.Section>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 

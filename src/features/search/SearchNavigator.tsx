@@ -21,7 +21,7 @@ import {useSearchPageDataStore} from './presentation/state/useSearchPageDataStor
 import SearchBar from './presentation/components/SearchBar';
 import SearchFiltersSelector from './presentation/components/SearchFiltersSelector';
 import CategorySwiper from '../../core/shared/components/CategorySwiper';
-import {useSearchViewModel} from './presentation/viewmodel/useSearchViewModel';
+import {SearchViewModel} from './presentation/viewmodels/SearchViewModel';
 import Category from '../plugins/data/model/item/Category';
 
 /**
@@ -35,7 +35,7 @@ const SearchNavigator = () => {
   const navigation = useNavigation<any>();
 
   // Use the search view model
-  const searchViewModel = useSearchViewModel();
+  const searchViewModel = new SearchViewModel();
 
   // Use the search page data store
   const {
@@ -75,11 +75,7 @@ const SearchNavigator = () => {
 
       try {
         // Use the search view model to perform the search
-        await searchViewModel.search(
-          searchQuery,
-          pluginsToSearch,
-          sourceTypesToSearch,
-        );
+        await searchViewModel.search();
         setAlreadyStarted(true);
       } catch (error) {
         setSnackbarMessage('An error occurred while searching.');
@@ -98,15 +94,6 @@ const SearchNavigator = () => {
     }
   }, [query, handleSearch]);
 
-  // Update results when search view model updates
-  useEffect(() => {
-    const unsubscribe = searchViewModel.onResultsUpdated(newResults => {
-      setResults(newResults);
-    });
-
-    return () => unsubscribe();
-  }, [searchViewModel, setResults]);
-
   // Render empty state
   const renderEmptyState = () => (
     <View style={styles.emptyStateContainer}>
@@ -118,7 +105,7 @@ const SearchNavigator = () => {
   );
 
   return (
-    <SafeAreaView
+    <View
       style={[styles.container, {backgroundColor: theme.colors.background}]}>
       <StatusBar
         backgroundColor={theme.colors.background}
@@ -126,8 +113,8 @@ const SearchNavigator = () => {
       />
 
       {/* Header with search bar */}
-      <Appbar.Header
-        style={[styles.header, {backgroundColor: theme.colors.background}]}>
+      {/* <Appbar.Header style={styles.header}> */}
+      <View style={styles.header}>
         <View style={styles.searchContainer}>
           <SearchBar onSubmitEditing={handleSearch} />
         </View>
@@ -147,7 +134,8 @@ const SearchNavigator = () => {
             size={24}
           />
         </TouchableOpacity>
-      </Appbar.Header>
+      </View>
+      {/* </Appbar.Header> */}
 
       {/* Filter options */}
       <View
@@ -206,7 +194,7 @@ const SearchNavigator = () => {
         }}>
         {snackbarMessage}
       </Snackbar>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -215,9 +203,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    marginTop: 8,
     elevation: 0,
     shadowOpacity: 0,
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 8,
   },
   searchContainer: {
     flex: 1,
@@ -228,7 +220,8 @@ const styles = StyleSheet.create({
   },
   filterContainer: {
     width: '100%',
-    padding: 8,
+    paddingBottom: 8,
+    paddingLeft: 8,
   },
   contentContainer: {
     flex: 1,

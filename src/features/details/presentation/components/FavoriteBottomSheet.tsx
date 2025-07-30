@@ -20,7 +20,9 @@ const FavoriteBottomSheet = ({
 }: {
   bottomSheetRef: React.RefObject<BottomSheetMethods>;
 }) => {
-  const {item, addFavorite, setVisible} = useFavoriteStore(state => state);
+  const {item, addFavorite, setVisible, setIsFavorited} = useFavoriteStore(
+    state => state,
+  );
 
   const theme = useTheme();
 
@@ -61,6 +63,7 @@ const FavoriteBottomSheet = ({
                 type: item.type,
               } as Favorite);
               setVisible(false);
+              setIsFavorited(true);
             }}
           />
         ))}

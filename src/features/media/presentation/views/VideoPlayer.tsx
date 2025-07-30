@@ -46,7 +46,7 @@ interface VideoPlayerControlsProps {
   onExitFullscreen?: () => void;
 }
 
-const {width} = Dimensions.get('window');
+const {width, height} = Dimensions.get('screen');
 
 const VideoPlayer: React.FC<VideoPlayerProps> = ({
   paused = false,
@@ -109,16 +109,16 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     setIsFullscreen(prev => !prev);
   };
 
-  const exitFullscreen = () => {
+  const exitFullscreen = async () => {
+    await SystemNavigationBar.navigationShow();
     setIsFullscreen(false);
-    SystemNavigationBar.navigationShow();
-    Orientation.unlockAllOrientations();
+    // Orientation.unlockAllOrientations();
   };
 
-  const enterFullscreen = () => {
+  const enterFullscreen = async () => {
+    await SystemNavigationBar.immersive();
     setIsFullscreen(true);
-    SystemNavigationBar.immersive();
-    Orientation.lockToLandscapeLeft();
+    // Orientation.lockToLandscapeLeft();
   };
 
   const theme = useTheme();
@@ -143,20 +143,20 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   // When device enters landscape mode
   useEffect(() => {
     const subscription = Orientation.addDeviceOrientationListener(
-      (deviceOrentation: OrientationType) => {
+      async (deviceOrentation: OrientationType) => {
         console.log('Device orientation changed');
         if (deviceOrentation === 'LANDSCAPE-LEFT') {
+          await SystemNavigationBar.immersive();
           setIsFullscreen(true);
-          Orientation.lockToLandscapeLeft();
-          SystemNavigationBar.immersive();
+          // Orientation.lockToLandscapeLeft();
         } else if (deviceOrentation === 'LANDSCAPE-RIGHT') {
+          await SystemNavigationBar.immersive();
           setIsFullscreen(true);
-          Orientation.lockToLandscapeRight();
-          SystemNavigationBar.immersive();
+          // Orientation.lockToLandscapeRight();
         } else {
+          await SystemNavigationBar.navigationShow();
           setIsFullscreen(false);
-          Orientation.lockToPortrait();
-          SystemNavigationBar.navigationShow();
+          // Orientation.lockToPortrait();
         }
       },
     );
@@ -179,6 +179,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       <Text style={styles.episodeNumber}>{index + 1}</Text>
       <Image
         source={{uri: item.imageUrl || media?.details?.imageUrl}}
+        // blurRadius={3}
         style={styles.episodeThumbnail}
       />
       <View style={styles.episodeInfo}>
@@ -206,12 +207,13 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   return (
     <ScrollView
       style={[styles.container, isFullscreen && styles.fullscreenContainer]}>
+      <StatusBar hidden={isFullscreen} />
       {/* Video Player Section */}
       <View
         style={{
           ...styles.videoContainer,
-          height: isFullscreen ? dimensions.height : undefined,
-          width: isFullscreen ? dimensions.width : '100%',
+          height: isFullscreen ? Dimensions.get('window').height : undefined,
+          width: isFullscreen ? Dimensions.get('screen').width : '100%',
           aspectRatio: isFullscreen ? undefined : 16 / 9,
         }}>
         <Video
@@ -367,6 +369,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
                     source={{
                       uri: episode.imageUrl || media?.details.imageUrl,
                     }}
+                    // blurRadius={3}
                     style={styles.episodeThumbnail}
                   />
 

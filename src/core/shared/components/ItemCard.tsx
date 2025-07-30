@@ -68,6 +68,7 @@ const ItemCard: React.FC<ItemCardProps> = ({item, variant = 'tall'}) => {
       <ImageBackground
         source={{uri: item.imageUrl}}
         style={[styles.image, dimensions]}
+        // blurRadius={4}
         resizeMode="cover">
         <LinearGradient
           colors={['rgba(0, 0, 0, 0.0)', 'rgba(0, 0, 0, 0.75)']}

@@ -1,13 +1,11 @@
 import {View, Text, StyleSheet, Dimensions, StatusBar} from 'react-native';
 import React, {useEffect, useRef, useState} from 'react';
-import {GestureHandlerRootView, ScrollView} from 'react-native-gesture-handler';
 import {useTheme} from 'react-native-paper';
 import BottomSheet, {BottomSheetScrollView} from '@gorhom/bottom-sheet';
-import CategorySwiperItem from './CategorySwiperItem';
-import {Plugin} from '../../../../plugins/domain/entities/Plugin';
-import {useSearchPageDataStore} from '../../state/useSearchPageDataStore';
+import {useSearchPageDataStore} from '../state/useSearchPageDataStore';
 import {BottomSheetMethods} from '@gorhom/bottom-sheet/lib/typescript/types';
-import {SearchViewModel} from '../../viewmodels/SearchViewModel';
+import {SearchViewModel} from '../viewmodels/SearchViewModel';
+import ItemCard from '../../../../core/shared/components/ItemCard';
 
 const PaginationBottomSheet = ({
   // getNextPage,
@@ -122,9 +120,7 @@ const PaginationBottomSheet = ({
           }}>
           {bottomSheetItems.map((item, index) => (
             <View key={index} style={styles.cardWrapper}>
-              <CategorySwiperItem
-                item={{...item, source: bottomSheetActivePlugin}}
-              />
+              <ItemCard item={{...item, source: bottomSheetActivePlugin}} />
             </View>
           ))}
         </View>

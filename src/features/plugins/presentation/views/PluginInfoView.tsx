@@ -66,43 +66,54 @@ const PluginInfoView = () => {
           ...styles.scrollView,
           backgroundColor: theme.colors.background,
         }}>
-        <Appbar.Header>
-          <Appbar.BackAction
-            onPress={() => {
-              setVisible(true);
-              navigation.goBack();
-            }}
-          />
-          <Appbar.Content title={plugin.name} />
-          <Appbar.Action
-            icon="earth"
-            onPress={() => {
-              if (plugin.homePageUrl === undefined) return;
-              {
+        <View style={styles.header}>
+          <View
+            style={{
+              flex: 1,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 8,
+            }}>
+            <IconButton
+              icon="arrow-left"
+              onPress={() => {
+                setVisible(true);
+                navigation.goBack();
+              }}
+            />
+            <Text variant="titleLarge">{plugin.name}</Text>
+          </View>
+          <View style={{flexDirection: 'row', gap: 8}}>
+            <IconButton
+              icon="earth"
+              onPress={() => {
                 if (plugin.homePageUrl === undefined) return;
-                Linking.openURL(plugin.homePageUrl);
-              }
-            }}
-          />
-          <Appbar.Action
-            icon="share"
-            onPress={() => {
-              if (plugin.homePageUrl === undefined) return;
-              Share.share(
                 {
-                  title: plugin.name,
-                  url: plugin.homePageUrl,
-                  message: plugin.homePageUrl,
-                },
-                {
-                  dialogTitle: plugin.name,
-                  subject: plugin.name,
-                  tintColor: 'black',
-                },
-              );
-            }}
-          />
-        </Appbar.Header>
+                  if (plugin.homePageUrl === undefined) return;
+                  Linking.openURL(plugin.homePageUrl);
+                }
+              }}
+            />
+            <IconButton
+              icon="share"
+              onPress={() => {
+                if (plugin.homePageUrl === undefined) return;
+                Share.share(
+                  {
+                    title: plugin.name,
+                    url: plugin.homePageUrl,
+                    message: plugin.homePageUrl,
+                  },
+                  {
+                    dialogTitle: plugin.name,
+                    subject: plugin.name,
+                    tintColor: 'black',
+                  },
+                );
+              }}
+            />
+          </View>
+        </View>
         {plugin.bannerImageUrl !== undefined ? (
           <>
             <ImageBackground
@@ -235,6 +246,16 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  header: {
+    elevation: 0,
+    shadowOpacity: 0,
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
   },
   pluginInfoView: {
     marginTop: -50,

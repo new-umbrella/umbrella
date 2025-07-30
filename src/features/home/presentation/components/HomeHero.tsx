@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   image: {
-    width: '100%',
+    width: Dimensions.get('window').width,
     height: '100%',
   },
   gradientOverlay: {

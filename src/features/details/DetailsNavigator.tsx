@@ -23,6 +23,13 @@ import Category from '../plugins/data/model/item/Category';
 import SourceType from '../plugins/data/model/source/SourceType';
 import RawVideo from '../plugins/data/model/media/RawVideo';
 import {MediaToView} from '../media/domain/entities/MediaToView';
+import {LibraryViewModel} from '../library/presentation/viewmodels/LibraryViewModel';
+import {
+  Favorite,
+  FavoriteCategoryType,
+} from '../library/domain/entities/Favorite';
+import Item from '../plugins/data/model/item/Item';
+import {useFavoriteStore} from './presentation/state/useFavoriteStore';
 
 interface RouteParams {
   itemId: string;
@@ -90,9 +97,56 @@ const DetailsNavigator = () => {
     // Implement download functionality
   };
 
+  const libraryViewModel = new LibraryViewModel();
+  const favorites = libraryViewModel.getFavorites();
+
+  const {isFavorited, setItem, setVisible, visible} = useFavoriteStore();
+
+  const [favorite, setFavorite] = useState<Favorite | undefined>(undefined);
+  const [isFavorite, setIsFavorite] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!isFavorite && details?.type && favorites.length > 0) {
+      setIsFavorite(
+        favorites.some(
+          (fav: Favorite) =>
+            fav.item?.id === itemId &&
+            fav.type === details?.type &&
+            fav.item?.source?.name === plugin.name &&
+            fav.item?.source?.author === plugin.author,
+        ),
+      );
+    }
+  }, [isFavorite, details?.type, isFavorited, visible]);
+
+  useEffect(() => {
+    if (isFavorite === true) {
+      setFavorite(
+        libraryViewModel
+          .getFavorites()
+          .find(
+            (fav: Favorite) =>
+              fav.item?.id === itemId &&
+              fav.type === details?.type &&
+              fav.item?.source?.name === plugin.name &&
+              fav.item?.source?.author === plugin.author,
+          ),
+      );
+    }
+  }, [isFavorite]);
+
   const handleAddToList = () => {
-    console.log('Add to list pressed for item:', itemId);
-    // Implement add to list functionality
+    setItem({
+      id: itemId,
+      name: details?.name,
+      imageUrl: details?.imageUrl,
+      type: details?.type,
+      url: details?.url,
+      description: details?.description,
+      source: plugin,
+    } as Item);
+
+    setVisible(true);
   };
 
   const handleShare = () => {
@@ -130,25 +184,6 @@ const DetailsNavigator = () => {
 
   if (loading) {
     return (
-      //   <NetflixDetailsScreen
-      //     show={{
-      //       title: 'Loading...',
-      //       year: '2024',
-      //       rating: 'NR',
-      //       seasons: '1 Season',
-      //       quality: 'HD',
-      //       description: 'Loading item details...',
-      //       genres: [],
-      //       cast: [],
-      //       creators: [],
-      //       episodes: [],
-      //     }}
-      //     onPlay={handlePlay}
-      //     onDownload={handleDownload}
-      //     onAddToList={handleAddToList}
-      //     onShare={handleShare}
-      //     onBack={handleBack}
-      //   />
       <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
         <ActivityIndicator size="large" />
       </View>
@@ -157,26 +192,6 @@ const DetailsNavigator = () => {
 
   if (error) {
     return (
-      //   <NetflixDetailsScreen
-      //     show={{
-      //       title: 'Error',
-      //       year: '2024',
-      //       rating: 'NR',
-      //       seasons: '1 Season',
-      //       quality: 'HD',
-      //       description: error,
-      //       genres: [],
-      //       cast: [],
-      //       creators: [],
-      //       episodes: [],
-      //     }}
-      //     onPlay={handlePlay}
-      //     onDownload={handleDownload}
-      //     onAddToList={handleAddToList}
-      //     onShare={handleShare}
-      //     onBack={handleBack}
-      //   />
-      // );
       <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
         <Text>Error: {error}</Text>
       </View>
@@ -185,54 +200,11 @@ const DetailsNavigator = () => {
 
   if (!details) {
     return (
-      // <NetflixDetailsScreen
-      //   show={{
-      //     title: 'No Data',
-      //     year: '2024',
-      //     rating: 'NR',
-      //     seasons: '1 Season',
-      //     quality: 'HD',
-      //     description: 'No details available',
-      //     genres: [],
-      //     cast: [],
-      //     creators: [],
-      //     episodes: [],
-      //   }}
-      //   onPlay={handlePlay}
-      //   onDownload={handleDownload}
-      //   onAddToList={handleAddToList}
-      //   onShare={handleShare}
-      //   onBack={handleBack}
-      // />
       <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
         <Text>No details available</Text>
       </View>
     );
   }
-
-  // Transform DetailedItem to NetflixDetailsScreen format
-  // const netflixShow = {
-  //   title: details.name || 'Untitled',
-  //   year: details.releaseDate
-  //     ? new Date(details.releaseDate).getFullYear().toString()
-  //     : new Date().getFullYear().toString(),
-  //   rating: details.rating ? `${details.rating}/10` : 'NR',
-  //   seasons: '1 Season', // Default since we don't have seasons in DetailedItem
-  //   quality: 'HD', // Default quality
-  //   description:
-  //     details.synopsis || details.description || 'No description available',
-  //   genres: details.genres?.map((g: any) => g.name) || [],
-  //   cast: details.creators || [],
-  //   creators: details.creators || [],
-  //   episodes:
-  //     details.media?.map((media: any, index: number) => ({
-  //       id: media.id || index.toString(),
-  //       title: media.name || `Episode ${media.number || index + 1}`,
-  //       duration: media.duration
-  //         ? `${Math.floor(media.duration / 60)}m`
-  //         : '45m',
-  //     })) || [],
-  // };
 
   return (
     <View style={styles.container}>
@@ -246,6 +218,7 @@ const DetailsNavigator = () => {
               uri: details.imageUrl,
             }}
             style={styles.heroImage}
+            // blurRadius={1}
             resizeMode="cover"
           />
 
@@ -344,13 +317,24 @@ const DetailsNavigator = () => {
 
             <TouchableOpacity
               style={styles.secondaryButton}
-              onPress={handleAddToList}>
+              onPress={() => {
+                if (isFavorite && favorite) {
+                  // Remove from favorites
+                  libraryViewModel.removeFavorite(favorite.id);
+                  setIsFavorite(false);
+                } else {
+                  // Add to favorites
+                  handleAddToList();
+                }
+              }}>
               <Icon
-                source={isInList ? 'check' : 'plus'}
+                source={isFavorite && favorite ? 'check' : 'plus'}
                 size={24}
                 color="#fff"
               />
-              <Text style={styles.secondaryButtonText}>My List</Text>
+              <Text style={styles.secondaryButtonText}>
+                {isFavorite ? 'Remove' : 'My list'}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -429,6 +413,7 @@ const DetailsNavigator = () => {
                         source={{
                           uri: episode.imageUrl || details.imageUrl,
                         }}
+                        blurRadius={3}
                         style={styles.episodeThumbnail}
                       />
 

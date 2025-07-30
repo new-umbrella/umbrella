@@ -39,14 +39,6 @@ import SettingsNavigator from '../features/settings/SettingsNavigator';
 // Shown on all top level screens
 // Shows a Rail when in landscape mode
 
-const NavScreenWrapper: React.FC<any> = props => {
-  return (
-    <View style={{flex: 1}}>
-      <View style={styles.container}>{props.children}</View>
-    </View>
-  );
-};
-
 const DrawerNavigator = createDrawerNavigator();
 
 const DrawerContent = ({props, setIndex}: any) => {
@@ -161,35 +153,15 @@ const BottomNavigationBar = () => {
     },
   ]);
 
-  const Home = () => (
-    // <NavScreenWrapper title="Home">
-    <HomeNavigator />
-    // </NavScreenWrapper>
-  );
+  const Home = () => <HomeNavigator />;
 
-  const Search = () => (
-    // <NavScreenWrapper title="Search">
-    <SearchNavigator />
-    // </NavScreenWrapper>
-  );
+  const Search = () => <SearchNavigator />;
 
-  const Library = () => (
-    // <NavScreenWrapper title="Library">
-    <LibraryNavigator />
-    // </NavScreenWrapper>
-  );
+  const Library = () => <LibraryNavigator />;
 
-  const Plugins = () => (
-    // <NavScreenWrapper title="Plugins">
-    <PluginsNavigator />
-    // </NavScreenWrapper>
-  );
+  const Plugins = () => <PluginsNavigator />;
 
-  const Settings = () => (
-    // <NavScreenWrapper title="Settings">
-    <SettingsNavigator />
-    // </NavScreenWrapper>
-  );
+  const Settings = () => <SettingsNavigator />;
 
   const renderScene = BottomNavigation.SceneMap({
     home: Home,
@@ -276,6 +248,5 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    // backgroundColor: 'blue',
   },
 });

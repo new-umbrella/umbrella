@@ -11,7 +11,16 @@ import {
   Image,
   Dimensions,
 } from 'react-native';
-import {useTheme, Appbar, Chip, Divider, Text, Card} from 'react-native-paper';
+import {
+  useTheme,
+  Appbar,
+  Chip,
+  Divider,
+  Text,
+  Card,
+  Icon,
+  IconButton,
+} from 'react-native-paper';
 import {useNavigation} from '@react-navigation/native';
 import {LibraryViewModel} from './presentation/viewmodels/LibraryViewModel';
 import {LibraryPageData} from './domain/entities/LibraryPageData';
@@ -85,6 +94,7 @@ const LibraryNavigator = () => {
       }>
       <Card.Cover
         source={{uri: favorite.item.imageUrl}}
+        // blurRadius={3}
         style={styles.cardImage}
       />
       <Card.Content
@@ -116,7 +126,7 @@ const LibraryNavigator = () => {
   );
 
   return (
-    <SafeAreaView
+    <View
       style={[styles.container, {backgroundColor: theme.colors.background}]}>
       <StatusBar
         backgroundColor={theme.colors.background}
@@ -124,11 +134,17 @@ const LibraryNavigator = () => {
       />
 
       {/* Header */}
-      <Appbar.Header
-        style={[styles.header, {backgroundColor: theme.colors.background}]}>
-        <Appbar.Content title="Library" />
-        <Appbar.Action icon="magnify" onPress={() => {}} />
-      </Appbar.Header>
+      <View style={styles.header}>
+        <Text variant="titleLarge" style={{color: theme.colors.onBackground}}>
+          Library
+        </Text>
+        <IconButton
+          icon="magnify"
+          size={24}
+          iconColor={theme.colors.onBackground}
+          onPress={() => {}}
+        />
+      </View>
 
       {/* Filter chips */}
       <View
@@ -183,7 +199,7 @@ const LibraryNavigator = () => {
           </View>
         }
       />
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -194,25 +210,38 @@ const styles = StyleSheet.create({
   header: {
     elevation: 0,
     shadowOpacity: 0,
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
   },
   filterContainer: {
     padding: 8,
+    marginBottom: 8,
   },
   chip: {
     marginHorizontal: 4,
   },
   contentContainer: {
     padding: 8,
+    display: 'flex',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    width: '100%',
   },
   card: {
     flex: 1,
     margin: 4,
     elevation: 2,
-    width: '48%',
+    width: Dimensions.get('window').width / 2 - 16,
     height: 350,
     padding: 8,
   },
   cardContent: {
+    gap: 8,
     paddingVertical: 8,
     paddingHorizontal: 4,
   },
