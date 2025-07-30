@@ -227,19 +227,7 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <SafeAreaView
-        style={{
-          flex: 0,
-        }}
-      />
-      <SafeAreaView
-        style={{
-          flex: 1,
-          backgroundColor:
-            colorScheme === 'dark'
-              ? DarkTheme.colors.background
-              : LightTheme.colors.background,
-        }}>
+      <View style={{flex: 1}}>
         <PaperProvider theme={colorScheme === 'dark' ? DarkTheme : LightTheme}>
           <NavigationContainer
             ref={navigationRef}
@@ -306,7 +294,7 @@ export default function App() {
             </GestureHandlerRootView>
           </NavigationContainer>
         </PaperProvider>
-      </SafeAreaView>
+      </View>
     </SafeAreaProvider>
   );
 }

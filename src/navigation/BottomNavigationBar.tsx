@@ -40,29 +40,8 @@ import SettingsNavigator from '../features/settings/SettingsNavigator';
 // Shows a Rail when in landscape mode
 
 const NavScreenWrapper: React.FC<any> = props => {
-  const navigation = useNavigation();
-  const {activeProfile} = useProfileStore(state => state);
-
   return (
     <View style={{flex: 1}}>
-      <Appbar.Header>
-        <Appbar.Content title={props.title} />
-        <TouchableRipple>
-          <View
-            style={{
-              overflow: 'hidden',
-              borderRadius: 2,
-              marginRight: 16,
-            }}>
-            <SvgUri
-              width={32}
-              height={32}
-              uri={activeProfile?.profile_image || ''}
-              onPress={() => navigation.navigate('profile' as never)}
-            />
-          </View>
-        </TouchableRipple>
-      </Appbar.Header>
       <View style={styles.container}>{props.children}</View>
     </View>
   );
