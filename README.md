@@ -15,6 +15,7 @@ This project is designed for **extensibility, security, and scalability**, makin
 - **State Management**: Utilize [zustand](https://github.com/pmndrs/zustand) for storing, managing, and persisting state.
 - **Integration with external apps through intents**: Using Intents to open external apps like MX Player to handle different the media types supported.
 - **Material Design 3 Inspired UI**: Using components from [react-native-paper](https://github.com/callstack/react-native-paper).
+- **Comprehensive Settings**: Fully implemented settings screen with app customization, playback options, download management, account settings, and support features.
 
 ---
 
@@ -32,7 +33,7 @@ This project is designed for **extensibility, security, and scalability**, makin
 
 - Create layout and logic for displaying categories and choosing sources on Home feature.
 - Create persisted store and CRUD logic for saving the info of items from different sources in the Library feature ✅.
-- Create settings that users can edit to customize their Umbrella experience.
+- Create settings that users can edit to customize their Umbrella experience ✅.
 
 3. UI & UX Improvements
 
@@ -78,8 +79,8 @@ This project is designed for **extensibility, security, and scalability**, makin
 | <img src="screenshots/PluginList.png" alt="Plugin List" width="200"/>                                    | <img src="screenshots/DeletePluginDialog.png" alt="Delete Plugin Dialog" width="200"/>               | <img src="screenshots/SearchScreen.png" alt="Search Screen" width="200"/>                  | <img src="screenshots/SearchScreenModal.png" alt="Search Screen More Modal" width="200"/>    |
 | Search Sreen More Modal (Fullscreen)                                                                     | Details Screen                                                                                       | Details Screen (Bottom)                                                                    | Home Screen (NYI)                                                                            |
 | <img src="screenshots/SearchPageFullModal.png" alt="Search Screen More Modal (Fullscreen)" width="200"/> | <img src="screenshots/DetaisScreen.png" alt="Details Screen" width="200"/>                           | <img src="screenshots/DetailsScreenBottom.png" alt="Details Screen (Bottom)" width="200"/> | <img src="screenshots/HomeScreen.png" alt="Home Screen (Not Yet Implemented)" width="200" /> |
-| Library Screen (NYI)                                                                                     | SettingsScreen (NYI)                                                                                 | Create Profile Screen                                                                      | Select Profile Screen                                                                        |
-| <img src="screenshots/LibraryScreen.png" alt="Library Screen (Not Yet Implemented)" width="200" />       | <img src="screenshots/SettingsScreen.png" alt="Settings Screen (Not Yet Implemented)" width="200" /> | <img src="screenshots/CreateProfileScreen.png" alt="Create Profile Screen" width="200" />  | <img src="screenshots/SelectProfileScreen.png" alt="Select Profile Screen" width="200" />    |
+| Library Screen (NYI)                                                                                     | Settings Screen                                                                                      | Create Profile Screen                                                                      | Select Profile Screen                                                                        |
+| <img src="screenshots/LibraryScreen.png" alt="Library Screen (Not Yet Implemented)" width="200" />       | <img src="screenshots/SettingsScreen.png" alt="Settings Screen" width="200" />                       | <img src="screenshots/CreateProfileScreen.png" alt="Create Profile Screen" width="200" />  | <img src="screenshots/SelectProfileScreen.png" alt="Select Profile Screen" width="200" />    |
 
 ---
 

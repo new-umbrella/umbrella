@@ -31,6 +31,8 @@ import LibraryNavigator from '../features/library/LibraryNavigator';
 import {SvgUri} from 'react-native-svg';
 import {useProfileStore} from '../features/profile/presentation/state/useProfileStore';
 import PluginListView from '../features/plugins/presentation/views/PluginListView';
+import Orientation from 'react-native-orientation-locker';
+import SettingsNavigator from '../features/settings/SettingsNavigator';
 
 // BottomNavigationBar
 // This component is used to display the bottom navigation bar
@@ -145,30 +147,6 @@ const DrawerContent = ({props, setIndex}: any) => {
   );
 };
 
-// const HomeRoute = () => (
-//   <View style={styles.container}>
-//     <Text>Home Screen</Text>
-//   </View>
-// );
-
-const SearchRoute = () => (
-  <View style={styles.container}>
-    <Text>Search Screen</Text>
-  </View>
-);
-
-// const LibraryRoute = () => (
-//   <View style={styles.container}>
-//     <Text>Library Screen</Text>
-//   </View>
-// );
-
-const SettingsRoute = () => (
-  <View>
-    <Text>Settings Screen</Text>
-  </View>
-);
-
 const BottomNavigationBar = () => {
   const [index, setIndex] = React.useState(0);
   const [routes] = React.useState([
@@ -205,33 +183,33 @@ const BottomNavigationBar = () => {
   ]);
 
   const Home = () => (
-    <NavScreenWrapper title="Home">
-      <HomeNavigator />
-    </NavScreenWrapper>
+    // <NavScreenWrapper title="Home">
+    <HomeNavigator />
+    // </NavScreenWrapper>
   );
 
   const Search = () => (
-    <NavScreenWrapper title="Search">
-      <SearchNavigator />
-    </NavScreenWrapper>
+    // <NavScreenWrapper title="Search">
+    <SearchNavigator />
+    // </NavScreenWrapper>
   );
 
   const Library = () => (
-    <NavScreenWrapper title="Library">
-      <LibraryNavigator />
-    </NavScreenWrapper>
+    // <NavScreenWrapper title="Library">
+    <LibraryNavigator />
+    // </NavScreenWrapper>
   );
 
   const Plugins = () => (
-    <NavScreenWrapper title="Plugins">
-      <PluginsNavigator />
-    </NavScreenWrapper>
+    // <NavScreenWrapper title="Plugins">
+    <PluginsNavigator />
+    // </NavScreenWrapper>
   );
 
   const Settings = () => (
-    <NavScreenWrapper title="Settings">
-      <SettingsRoute />
-    </NavScreenWrapper>
+    // <NavScreenWrapper title="Settings">
+    <SettingsNavigator />
+    // </NavScreenWrapper>
   );
 
   const renderScene = BottomNavigation.SceneMap({

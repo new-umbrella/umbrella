@@ -1,588 +1,397 @@
-import {View, Alert, Linking, StyleSheet, Dimensions} from 'react-native';
-import React, {useState, useEffect, useRef, useMemo} from 'react';
-import Orientation from 'react-native-orientation-locker';
-import {MediaToView} from '../../domain/entities/MediaToView';
+import React, {useRef, useState, useEffect} from 'react';
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  Image,
+  TouchableOpacity,
+  Dimensions,
+  FlatList,
+  StatusBar,
+} from 'react-native';
+import {Appbar, Menu, Text, useTheme, Icon} from 'react-native-paper';
+import Video, {VideoRef} from 'react-native-video';
 import VideoPlayerControls from '../components/VideoPlayerControls';
-import {Button, Card, useTheme, Text} from 'react-native-paper';
-import MediaType from '../../../plugins/data/model/media/MediaType';
-// @ts-ignore – optional native module; will be resolved at runtime on device
-import SystemSetting from 'react-native-system-setting';
-import Video, {
-  SelectedTrack,
-  TextTrackType,
-  ISO639_1,
-} from 'react-native-video';
+import {MediaToView} from '../../domain/entities/MediaToView';
 import RawVideo from '../../../plugins/data/model/media/RawVideo';
 import {Subtitle} from '../../../plugins/data/model/media/Subtitle';
+import ItemMedia from '../../../plugins/data/model/item/ItemMedia';
+import Orientation, {OrientationType} from 'react-native-orientation-locker';
+import SystemNavigationBar from 'react-native-system-navigation-bar';
 
-const VideoPlayerContent = ({
-  hasError,
-  videoPlayerError,
-  VideoPlayerFallback,
-  currentVideoUrl,
-  videoRef,
-  videoSource,
-  styles,
-  isPlaying,
-  volume,
-  playbackRate,
-  resizeMode,
-  handleVideoLoad,
-  handleVideoLoadStart,
-  handleVideoProgress,
-  handleVideoError,
-  handleVideoBuffer,
-  handleVideoLoadEnd,
+interface VideoPlayerProps {
+  paused?: boolean;
+  onEnd?: () => void;
+  media?: MediaToView;
+  isFullscreen?: boolean;
+  onToggleFullscreen?: () => void;
+  onEnterFullscreen?: () => void;
+  onExitFullscreen?: () => void;
+}
+
+interface VideoPlayerControlsProps {
+  isPlaying: boolean;
+  progress: number;
+  currentTime: number;
+  duration: number;
+  onTogglePlay: () => void;
+  onSeek: (value: number) => void;
+  onSkipAndRewind: (value: number) => void;
+  subtitles: any[];
+  selectedSubtitle: Subtitle | null;
+  onSelectSubtitle: (subtitle: Subtitle | null) => void;
+  isFullscreen?: boolean;
+  onToggleFullscreen?: () => void;
+  onEnterFullscreen?: () => void;
+  onExitFullscreen?: () => void;
+}
+
+const {width} = Dimensions.get('window');
+
+const VideoPlayer: React.FC<VideoPlayerProps> = ({
+  paused = false,
+  onEnd,
   media,
-  selectedSubtitle,
-  details,
-  duration,
-  currentTime,
-  setCurrentTime,
-  setDuration,
-  handlePlayStateChange,
-  handleSeek,
-  handleFullscreenToggle,
-  handleVolumeChange,
-  handlePlaybackRateChange,
-  handleQualityChange,
-  handleSubtitleChange,
-  isLoading,
-  isBuffering,
-  bufferedTime,
-  isFullscreen,
-  handleDoubleTapSeek,
-  handleSwipeSeek,
-  handleBrightnessChange,
-}: any) => {
-  if (hasError || videoPlayerError) {
-    return <VideoPlayerFallback />;
-  }
-
-  return (
-    <View style={styles.videoContainer}>
-      {currentVideoUrl && (
-        <Video
-          ref={videoRef}
-          source={videoSource}
-          style={styles.video}
-          paused={!isPlaying}
-          volume={volume}
-          rate={playbackRate}
-          resizeMode={resizeMode}
-          onLoad={handleVideoLoad}
-          onLoadStart={handleVideoLoadStart}
-          onProgress={handleVideoProgress}
-          onEnd={() => handlePlayStateChange(false)}
-          onError={handleVideoError}
-          onBuffer={handleVideoBuffer}
-          onReadyForDisplay={handleVideoLoadEnd}
-          automaticallyWaitsToMinimizeStalling={true} // For better streaming
-          bufferConfig={{
-            minBufferMs: 15000,
-            maxBufferMs: 50000,
-            bufferForPlaybackMs: 2500,
-            bufferForPlaybackAfterRebufferMs: 5000,
-          }}
-          textTracks={
-            (media.media[media.index] as RawVideo)?.subtitles
-              ?.filter(subtitle => subtitle.name && subtitle.language)
-              .map((subtitle: Subtitle) => ({
-                title: subtitle.name!,
-                language: subtitle.language! as ISO639_1,
-                uri: subtitle.url,
-                type: subtitle.mimeType?.includes('vtt')
-                  ? ('vtt' as TextTrackType)
-                  : ('srt' as TextTrackType),
-              })) || []
-          }
-          selectedTextTrack={
-            selectedSubtitle
-              ? ({
-                  type: 'language',
-                  value: selectedSubtitle.language,
-                } as SelectedTrack)
-              : undefined
-          }
-          pictureInPicture={true}
-          playInBackground={true}
-        />
-      )}
-      <VideoPlayerControls
-        videoTitle={details.name}
-        isPlaying={isPlaying}
-        duration={duration}
-        currentTime={currentTime}
-        setCurrentTime={setCurrentTime}
-        setDuration={setDuration}
-        setIsPlaying={handlePlayStateChange}
-        onSeek={handleSeek}
-        onFullscreenToggle={handleFullscreenToggle}
-        onVolumeChange={handleVolumeChange}
-        onPlaybackRateChange={handlePlaybackRateChange}
-        onQualityChange={handleQualityChange}
-        onSubtitleChange={handleSubtitleChange}
-        subtitles={media.media[media.index]?.subtitles || []}
-        selectedSubtitle={selectedSubtitle}
-        isBuffering={isLoading || isBuffering}
-        bufferedTime={bufferedTime}
-        isFullscreen={isFullscreen}
-        onDoubleTapSeek={handleDoubleTapSeek}
-        onSwipeSeek={handleSwipeSeek}
-        onBrightnessChange={handleBrightnessChange}
-        playbackRate={playbackRate}
-        volume={volume}
-      />
-    </View>
-  );
-};
-
-const VideoPlayer = ({media}: {media: MediaToView}) => {
-  console.log('[VideoPlayer] Mounted');
-  const [isPlaying, setIsPlaying] = useState(true);
-  const [currentTime, setCurrentTime] = useState(0);
+}) => {
+  const videoRef = useRef<VideoRef>(null);
+  const [isBuffering, setIsBuffering] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(!paused);
+  const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [videoPlayerError, setVideoPlayerError] = useState(false);
-  const videoRef = useRef<any>(null);
-  const theme = useTheme();
-  const [hasError, setHasError] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  // Video player control states
-  const [volume, setVolume] = useState(1);
-  const [playbackRate, setPlaybackRate] = useState(1);
-  const [brightness, setBrightness] = useState(1);
-  const [isFullscreen, setIsFullscreen] = useState(true); // Default to fullscreen
-  const [quality, setQuality] = useState('Auto');
-  const [selectedSubtitle, setSelectedSubtitle] = useState<any>(null);
-  const [isBuffering, setIsBuffering] = useState(true);
-  const [bufferedTime, setBufferedTime] = useState(0);
-  const [resizeMode, setResizeMode] = useState<'contain' | 'cover' | 'stretch'>(
-    'contain',
+  const [currentTime, setCurrentTime] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [selectedEpisode, setSelectedEpisode] = useState<number>(0);
+  const [selectedSubtitle, setSelectedSubtitle] = useState<Subtitle | null>(
+    null,
   );
-  const [videoReady, setVideoReady] = useState(false);
+  // const [selectedQuality, setSelectedQuality] = useState<QualityOption | null>(
+  //   null,
+  // );
 
-  const {width, height} = Dimensions.get('window');
-
-  // Get initial brightness and lock orientation
   useEffect(() => {
-    // Lock to landscape mode when component mounts
-    Orientation.lockToLandscape();
+    setIsPlaying(!paused);
+  }, [paused]);
 
-    // Fetch current brightness
-    SystemSetting.getBrightness()
-      .then(setBrightness)
-      .catch(() => {});
+  const handlePlayPause = () => {
+    setIsPlaying(prev => !prev);
+  };
 
-    // Cleanup function to unlock orientation when component unmounts
-    return () => {
-      Orientation.unlockAllOrientations();
-    };
+  const handleProgress = (data: {
+    currentTime: number;
+    playableDuration: number;
+  }) => {
+    setCurrentTime(data.currentTime);
+    setProgress(data.currentTime / duration);
+  };
+
+  const handleLoad = (data: {duration: number}) => {
+    setDuration(data.duration);
+  };
+
+  const handleSeek = (value: number) => {
+    setCurrentTime(value * duration);
+  };
+
+  const handleSkipAndRewind = (value: number) => {
+    setCurrentTime(value);
+  };
+
+  const [dimensions, setDimensions] = useState(Dimensions.get('window'));
+
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({window}) => {
+      setDimensions(window);
+    });
+    return () => subscription.remove();
   }, []);
 
-  // Memoize the current video URL to prevent unnecessary re-renders
-  const currentVideoUrl = useMemo(() => {
-    return media.media?.[media.index]?.url || null;
-  }, [media.media, media.index]);
-
-  // Reset video state when source changes (but only when it actually changes)
-  const [lastVideoUrl, setLastVideoUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (currentVideoUrl && currentVideoUrl !== lastVideoUrl) {
-      console.log(
-        '[useEffect] Video source changed, resetting states from:',
-        lastVideoUrl,
-        'to:',
-        currentVideoUrl,
-      );
-      setIsLoading(true);
-      setIsBuffering(true);
-      setVideoReady(false);
-      setCurrentTime(0);
-      setBufferedTime(0); // Reset buffered time when source changes
-      setHasError(false);
-      setVideoPlayerError(false);
-      setLastVideoUrl(currentVideoUrl);
-    }
-  }, [currentVideoUrl, lastVideoUrl]);
-
-  // Ensure we only auto-resume once after the first ready event
-  const hasAutoPlayedRef = useRef(false);
-
-  // Fallback component when react-native-video fails
-  const VideoPlayerFallback = () => (
-    <View style={styles.container}>
-      <Card style={styles.fallbackContainer}>
-        <Card.Content style={styles.fallbackContent}>
-          <Text variant="headlineSmall" style={styles.fallbackTitle}>
-            Video Player Error
-          </Text>
-          <Text variant="bodyMedium" style={styles.fallbackMessage}>
-            {errorMessage ||
-              'Unable to play this video. The video format may not be supported or the stream may be unavailable.'}
-          </Text>
-
-          <View style={styles.fallbackButtons}>
-            <Button
-              mode="contained"
-              onPress={openInExternalPlayer}
-              style={styles.fallbackButton}>
-              Open in External Player
-            </Button>
-
-            <Button
-              mode="outlined"
-              onPress={copyVideoUrl}
-              style={styles.fallbackButton}>
-              Copy Video URL
-            </Button>
-
-            <Button
-              mode="text"
-              onPress={showVideoInfo}
-              style={styles.fallbackButton}>
-              Video Information
-            </Button>
-          </View>
-        </Card.Content>
-      </Card>
-    </View>
-  );
-
-  const openInExternalPlayer = async () => {
-    const videoUrl = media.media[0].url;
-
-    Alert.alert(
-      'Open in External Player',
-      'Choose how you want to open this video:',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Browser',
-          onPress: async () => {
-            try {
-              await Linking.openURL(videoUrl);
-            } catch (err) {
-              Alert.alert('Error', 'Could not open URL in browser');
-            }
-          },
-        },
-        {
-          text: 'Default Video Player',
-          onPress: async () => {
-            try {
-              await Linking.openURL(videoUrl);
-            } catch (err) {
-              Alert.alert('Error', 'Could not open video in default player');
-            }
-          },
-        },
-      ],
-    );
+  const toggleFullscreen = () => {
+    setIsFullscreen(prev => !prev);
   };
 
-  const copyVideoUrl = () => {
-    const videoUrl = media.media[media.index]?.url || '';
-    // For React Native, we can't copy to clipboard directly, so we'll show an alert
-    Alert.alert('Video URL', videoUrl, [{text: 'OK', style: 'default'}]);
+  const exitFullscreen = () => {
+    setIsFullscreen(false);
+    SystemNavigationBar.navigationShow();
+    Orientation.unlockAllOrientations();
   };
 
-  const showVideoInfo = () => {
-    const source = media.media[media.index];
-    const info = [
-      `Title: ${media.details.name}`,
-      `Source: ${source?.name || 'Unknown'}`,
-      `Type: ${source?.type || 'Unknown'}`,
-      `URL: ${source?.url || 'Unknown'}`,
-    ].join('\n\n');
-
-    Alert.alert('Video Information', info, [{text: 'OK', style: 'default'}]);
+  const enterFullscreen = () => {
+    setIsFullscreen(true);
+    SystemNavigationBar.immersive();
+    Orientation.lockToLandscapeLeft();
   };
 
-  const handleVideoError = (err: any) => {
-    // We'll be more specific about what constitutes an error
-    console.error('[VideoPlayer] onError:', JSON.stringify(err, null, 2));
+  const theme = useTheme();
+  const [activeTab, setActiveTab] = useState<'episodes' | 'more'>('episodes');
+  const [isInList, setIsInList] = useState(false);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [menuVisible, setMenuVisible] = useState(false);
+  const itemsPerPage = 20;
 
-    // For m3u8, some errors are recoverable or informational, so we don't want to kill the player
-    // This is a placeholder for more specific error checking logic in the future
-    const isSeriousError =
-      err?.error?.code &&
-      // These are examples; we can add more non-fatal codes here
-      ![
-        -11819, // "MEDIA_ERROR_TIMED_OUT"
-        -11828, // "MEDIA_ERROR_UNKNOWN" with no specific details
-      ].includes(err.error.code);
-
-    if (isSeriousError) {
-      setHasError(true);
-      setErrorMessage(
-        err?.error?.localizedFailureReason ||
-          err?.error?.localizedDescription ||
-          'An unknown video error occurred.',
-      );
-    }
-  };
-
-  // Memoize all event handlers to prevent Video component re-renders
-  const handleVideoLoad = useMemo(
-    () => (data: any) => {
-      console.log('Video loaded:', data);
-      setDuration(data.duration);
-      setHasError(false);
-
-      // Mark video as ready and clear loading/buffering flags
-      if (!videoReady) {
-        setVideoReady(true);
-      }
-      if (isLoading) {
-        setIsLoading(false);
-      }
-      if (isBuffering) {
-        setIsBuffering(false);
-      }
-      console.log('Video load start');
-      setIsLoading(true);
-      setIsBuffering(true);
-    },
-    [videoReady, isLoading, isBuffering],
-  );
-
-  const currentTimeRef = useRef(0);
-  const bufferedTimeRef = useRef(0);
-  const isBufferingRef = useRef(false);
-  const isDraggingRef = useRef(false); // Track if user is dragging the slider
-  const lastUpdateRef = useRef(Date.now());
-
-  // Called by VideoPlayerControls when user starts/stops dragging
-  const setIsDragging = (dragging: boolean) => {
-    isDraggingRef.current = dragging;
-  };
-
-  const handleVideoProgress = (data: any) => {
-    currentTimeRef.current = data.currentTime;
-    bufferedTimeRef.current = data.playableDuration;
-    // Only update state if not dragging (for UI display)
-    // if (!isDraggingRef.current && Date.now() - lastUpdateRef.current > 500) {
-    //   setCurrentTime(data.currentTime);
-    //   setBufferedTime(data.playableDuration);
-    //   lastUpdateRef.current = Date.now();
+  const handleEpisodePress = (index: number) => {
+    setSelectedEpisode(index);
+    // TODO Handle Extraction
+    // if (media?.details?.media[index].url) {
+    videoRef.current?.seek(0);
     // }
   };
 
-  const handleVideoBuffer = (data: any) => {
-    isBufferingRef.current = data.isBuffering;
-    // Only set state if buffering state actually changes
-    if (isBuffering !== data.isBuffering) setIsBuffering(data.isBuffering);
+  const handleDownloadPress = (episode: ItemMedia) => {
+    // TODO Handle Download
   };
 
-  const handleVideoLoadStart = () => {
-    // Only set loading/buffering state if not already set
-    if (!isLoading) setIsLoading(true);
-    if (!isBuffering) setIsBuffering(true);
-  };
+  // When device enters landscape mode
+  useEffect(() => {
+    const subscription = Orientation.addDeviceOrientationListener(
+      (deviceOrentation: OrientationType) => {
+        console.log('Device orientation changed');
+        if (deviceOrentation === 'LANDSCAPE-LEFT') {
+          setIsFullscreen(true);
+          Orientation.lockToLandscapeLeft();
+          SystemNavigationBar.immersive();
+        } else if (deviceOrentation === 'LANDSCAPE-RIGHT') {
+          setIsFullscreen(true);
+          Orientation.lockToLandscapeRight();
+          SystemNavigationBar.immersive();
+        } else {
+          setIsFullscreen(false);
+          Orientation.lockToPortrait();
+          SystemNavigationBar.navigationShow();
+        }
+      },
+    );
+    return () => Orientation.removeOrientationListener(subscription as any);
+    // return () => subscription.remove();
+  }, []);
 
-  const handleVideoLoadEnd = useMemo(
-    () => () => {
-      console.log('Video ready for display');
-      // Set video as ready only once to avoid re-renders
-      if (isLoading) setIsLoading(false);
-      if (isBuffering) setIsBuffering(false);
-      if (!videoReady) setVideoReady(true);
-      // Auto-play the very first time the video becomes ready
-      if (!hasAutoPlayedRef.current) {
-        hasAutoPlayedRef.current = true;
-        setIsPlaying(true);
-      }
-      handleCast();
-    },
-    [isLoading, isBuffering, videoReady],
+  const renderEpisodeItem = ({item, index}: {item: any; index: number}) => (
+    <TouchableOpacity
+      style={[
+        styles.episodeItem,
+        selectedEpisode === index && styles.selectedEpisodeItem,
+      ]}
+      onPress={() => {
+        setSelectedEpisode(index);
+        if (item.videoUrl) {
+          videoRef.current?.seek(0);
+        }
+      }}>
+      <Text style={styles.episodeNumber}>{index + 1}</Text>
+      <Image
+        source={{uri: item.imageUrl || media?.details?.imageUrl}}
+        style={styles.episodeThumbnail}
+      />
+      <View style={styles.episodeInfo}>
+        <Text style={styles.episodeTitle} numberOfLines={2}>
+          {item.name || `Episode ${index + 1}`}
+        </Text>
+        {item.duration && (
+          <Text style={styles.episodeDuration}>{item.duration}</Text>
+        )}
+      </View>
+      <TouchableOpacity style={styles.downloadButton}>
+        <Icon source="download" size={24} color="#fff" />
+      </TouchableOpacity>
+    </TouchableOpacity>
   );
 
-  const handlePlaybackStateChanged = useMemo(
-    () => (data: any) => {
-      // Only log or update state if needed for UI
-      console.log('Playback state changed:', data);
-    },
-    [],
-  );
-
-  const handleVideoSeek = useMemo(
-    () => (data: any) => {
-      // Only log or update state if needed for UI
-      console.log('Video seeked to:', data.currentTime);
-    },
-    [],
-  );
-
-  // Memoize video style to prevent re-renders
-  const videoStyle = useMemo(
-    () => [styles.video, {width, height}],
-    [width, height],
-  );
-
-  // Video control handlers
-  const handleSeek = (time: number) => {
-    if (videoRef.current) {
-      videoRef.current.seek(time);
-    }
-    // Do not setCurrentTime here; let onProgress update it
-  };
-
-  // Handle play state changes
-  const handlePlayStateChange = (playing: boolean) => {
-    console.log('Play state changing to:', playing, 'Video ready:', videoReady);
-    // Allow setting play state even if video is not ready yet; the video will
-    // start automatically once `videoReady` becomes true.
-    setIsPlaying(playing);
-  };
-
-  const handlePlaybackRateChange = (rate: number) => {
-    setPlaybackRate(rate);
-  };
-
-  const handleQualityChange = (newQuality: string) => {
-    setQuality(newQuality);
-    // Here you could implement quality switching logic
-  };
-
-  const handleSubtitleChange = (subtitle: any) => {
-    setSelectedSubtitle(subtitle);
-    // Here you could implement subtitle switching logic
-  };
-
-  const handleFullscreenToggle = () => {
-    // Toggle between contain and cover modes instead of exiting fullscreen
-    setResizeMode(prev => (prev === 'contain' ? 'cover' : 'contain'));
-  };
-
-  const handleVolumeChange = (newVolume: number) => {
-    setVolume(newVolume);
-  };
-
-  const handleSourceChange = (source: any) => {
-    // Here you could implement source switching logic
-    console.log('Source changed to:', source);
-  };
-
-  const handleDoubleTapSeek = (direction: 'forward' | 'backward') => {
-    const seekTime = direction === 'forward' ? 10 : -10;
-    const newTime = Math.max(0, Math.min(duration, currentTime + seekTime));
-    handleSeek(newTime);
-  };
-
-  const handleSwipeSeek = (time: number) => {
-    handleSeek(time);
-  };
-
-  const handlePictureInPicture = () => {
-    // Implement picture-in-picture logic
-    console.log('Picture-in-picture requested');
-  };
-
-  const handleCast = () => {
-    // Implement casting logic
-    console.log('Cast requested');
-  };
-
-  // Memoize subtitles only on media and index (not currentTime)
-  const textTracks = useMemo(() => {
-    if (!media.media || media.media.length === 0) return [];
-    const source = media.media[media.index];
-    if (!source || source.type !== MediaType.RawVideo) return [];
-    return (source.subtitles || []).map((subtitle, index) => ({
-      title: subtitle.name || subtitle.language || `Subtitle ${index + 1}`,
-      language: subtitle.language || 'en',
-      type: 'application/x-subrip',
-      uri: subtitle.url,
-    }));
-  }, [media.media, media.index]);
-
-  if (!media?.media?.[media.index]?.url) return null; // or a loading indicator
-
-  const videoSource = useMemo(() => {
-    if (!currentVideoUrl) return null;
-    const currentMedia = media.media[media.index];
-
-    const source: any = {
-      uri: currentVideoUrl,
-      headers: media.media[media.index].headers,
-    };
-
-    // Explicitly set type for HLS streams for better compatibility
-    if ('isM3U8' in currentMedia && currentMedia.isM3U8) {
-      source.type = 'm3u8';
-    }
-
-    return source;
-  }, [currentVideoUrl, media.index]);
-
-  // Memoize selectedTextTrack only on selectedSubtitle
-  const selectedTextTrack = useMemo(() => {
-    return selectedSubtitle
-      ? ({
-          type: 'language',
-          value: selectedSubtitle.language,
-        } as SelectedTrack)
-      : undefined;
-  }, [selectedSubtitle]);
-
-  // Handle brightness change from gesture
-  const handleBrightnessChange = (delta: number) => {
-    const newBrightness = Math.max(0, Math.min(1, brightness + delta));
-    SystemSetting.setBrightness(newBrightness).then(() => {
-      setBrightness(newBrightness);
-    });
-  };
+  if (!media) {
+    return (
+      <View style={styles.container}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
 
   return (
-    <View style={styles.container}>
-      <VideoPlayerContent
-        hasError={hasError}
-        videoPlayerError={videoPlayerError}
-        VideoPlayerFallback={VideoPlayerFallback}
-        currentVideoUrl={currentVideoUrl}
-        videoRef={videoRef}
-        videoSource={videoSource}
-        styles={styles}
-        isPlaying={isPlaying}
-        volume={volume}
-        playbackRate={playbackRate}
-        resizeMode={resizeMode}
-        handleVideoLoad={handleVideoLoad}
-        handleVideoLoadStart={handleVideoLoadStart}
-        handleVideoProgress={handleVideoProgress}
-        handleVideoError={handleVideoError}
-        handleVideoBuffer={handleVideoBuffer}
-        handleVideoLoadEnd={handleVideoLoadEnd}
-        media={media}
-        selectedSubtitle={selectedSubtitle}
-        details={media.details}
-        duration={duration}
-        currentTime={currentTime}
-        setCurrentTime={setCurrentTime}
-        setDuration={setDuration}
-        handlePlayStateChange={handlePlayStateChange}
-        handleSeek={handleSeek}
-        handleFullscreenToggle={handleFullscreenToggle}
-        handleVolumeChange={handleVolumeChange}
-        handlePlaybackRateChange={handlePlaybackRateChange}
-        handleQualityChange={handleQualityChange}
-        handleSubtitleChange={handleSubtitleChange}
-        isLoading={isLoading}
-        isBuffering={isBuffering}
-        bufferedTime={bufferedTime}
-        isFullscreen={isFullscreen}
-        handleDoubleTapSeek={handleDoubleTapSeek}
-        handleSwipeSeek={handleSwipeSeek}
-        handleBrightnessChange={handleBrightnessChange}
-      />
-    </View>
+    <ScrollView
+      style={[styles.container, isFullscreen && styles.fullscreenContainer]}>
+      {/* Video Player Section */}
+      <View
+        style={{
+          ...styles.videoContainer,
+          height: isFullscreen ? dimensions.height : undefined,
+          width: isFullscreen ? dimensions.width : '100%',
+          aspectRatio: isFullscreen ? undefined : 16 / 9,
+        }}>
+        <Video
+          ref={videoRef}
+          source={{
+            uri: media?.media[selectedEpisode].url,
+            headers: media?.media[selectedEpisode].headers,
+          }}
+          paused={!isPlaying}
+          onEnd={onEnd}
+          onBuffer={() => setIsBuffering(true)}
+          onReadyForDisplay={() => setIsBuffering(false)}
+          onProgress={handleProgress}
+          onLoad={handleLoad}
+          style={[
+            styles.videoContainer,
+            isFullscreen && {
+              width: dimensions.width,
+              height: dimensions.height,
+              aspectRatio: undefined,
+              position: 'absolute',
+              zIndex: 1000,
+            },
+          ]}
+          resizeMode="contain"
+        />
+        <VideoPlayerControls
+          isPlaying={isPlaying}
+          progress={progress}
+          currentTime={currentTime}
+          duration={duration}
+          onTogglePlay={handlePlayPause}
+          onSeek={handleSeek}
+          onSkipAndRewind={handleSkipAndRewind}
+          subtitles={[...(media?.media.map((m: any) => m.subtitle) || [])]}
+          // qualities={qualities}
+          selectedSubtitle={selectedSubtitle}
+          // selectedQuality={selectedQuality}
+          onSelectSubtitle={setSelectedSubtitle}
+          // onSelectQuality={setSelectedQuality}
+          isFullscreen={isFullscreen}
+          onToggleFullscreen={toggleFullscreen}
+          onEnterFullscreen={enterFullscreen}
+          onExitFullscreen={exitFullscreen}
+        />
+      </View>
+
+      {/* Media Info Section */}
+      {media?.details && (
+        <View style={styles.infoContainer}>
+          <Text style={styles.title}>{media.details.name}</Text>
+
+          <View style={styles.metaRow}>
+            {media.details.matchPercentage && (
+              <Text style={styles.matchPercentage}>
+                {media.details.matchPercentage}% Match
+              </Text>
+            )}
+            {media.details.releaseDate && (
+              <Text style={styles.metaText}>{media.details.releaseDate}</Text>
+            )}
+            {media.details.rating && (
+              <View style={styles.ageBadge}>
+                <Text style={styles.ageText}>{media.details.rating}</Text>
+              </View>
+            )}
+            <Text style={styles.metaText}>
+              {media.details.media?.length || 1} Episodes
+            </Text>
+          </View>
+
+          {media.details.genres && (
+            <View style={styles.genreRow}>
+              {media.details.genres.map((genre, index) => (
+                <Text key={index} style={styles.genreText}>
+                  {genre.name}
+                  {index < (media.details.genres?.length || 0) - 1 && ' • '}
+                </Text>
+              ))}
+            </View>
+          )}
+
+          <Text style={styles.description}>
+            {media.details.synopsis || media.details.description}
+          </Text>
+        </View>
+      )}
+
+      {/* Episodes Section */}
+      <View style={styles.episodesSection}>
+        <View style={styles.episodesHeader}>
+          <Text style={styles.episodesTitle}>Episodes</Text>
+          <Menu
+            visible={menuVisible}
+            onDismiss={() => setMenuVisible(false)}
+            anchor={
+              <TouchableOpacity
+                onPress={() => setMenuVisible(true)}
+                style={styles.seasonSelector}>
+                <Text style={styles.seasonText}>
+                  {`${currentPage * itemsPerPage + 1}-${Math.min(
+                    (currentPage + 1) * itemsPerPage,
+                    media?.details.media.length,
+                  )}`}
+                </Text>
+                <Icon source="chevron-down" size={16} color="#fff" />
+              </TouchableOpacity>
+            }>
+            {Array.from(
+              {length: Math.ceil(media?.details.media.length / itemsPerPage)},
+              (_, i) => (
+                <Menu.Item
+                  key={i}
+                  onPress={() => {
+                    setCurrentPage(i);
+                    setMenuVisible(false);
+                  }}
+                  title={`${i * itemsPerPage + 1}-${Math.min(
+                    (i + 1) * itemsPerPage,
+                    media?.details.media.length,
+                  )}`}
+                />
+              ),
+            )}
+          </Menu>
+        </View>
+
+        {media?.details.media
+          .slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage)
+          .map((episode, index) => {
+            const globalIndex = currentPage * itemsPerPage + index;
+            return (
+              <TouchableOpacity
+                key={episode.id}
+                onPress={() => handleEpisodePress(globalIndex)}>
+                <View style={styles.episodeItem}>
+                  <Text
+                    style={{
+                      ...styles.episodeNumber,
+                      fontSize:
+                        (globalIndex + 1).toString().length > 1
+                          ? (globalIndex + 1).toString().length > 2
+                            ? (globalIndex + 1).toString().length > 3
+                              ? 10
+                              : 12
+                            : 14
+                          : 16,
+                    }}>
+                    {globalIndex + 1}
+                  </Text>
+
+                  <Image
+                    source={{
+                      uri: episode.imageUrl || media?.details.imageUrl,
+                    }}
+                    style={styles.episodeThumbnail}
+                  />
+
+                  <View style={styles.episodeInfo}>
+                    <Text style={styles.episodeTitle} numberOfLines={2}>
+                      {episode.name}
+                    </Text>
+                    {episode.duration && (
+                      <Text style={styles.episodeDuration}>
+                        {episode.duration}
+                      </Text>
+                    )}
+                  </View>
+
+                  <TouchableOpacity
+                    style={styles.downloadButton}
+                    onPress={() => handleDownloadPress(episode)}>
+                    <Icon source="download" size={24} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+      </View>
+    </ScrollView>
   );
 };
 
@@ -591,47 +400,220 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
   },
-  video: {
+  fullscreenContainer: {
     position: 'absolute',
     top: 0,
     left: 0,
-    bottom: 0,
     right: 0,
-  },
-  fallbackContainer: {
-    margin: 20,
-    padding: 20,
-  },
-  fallbackContent: {
-    alignItems: 'center',
-  },
-  fallbackTitle: {
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  fallbackMessage: {
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  fallbackButtons: {
-    width: '100%',
-    gap: 12,
-    marginBottom: 24,
-  },
-  fallbackButton: {
-    width: '100%',
-  },
-  videoInfo: {
-    width: '100%',
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: 'rgba(0,0,0,0.1)',
+    bottom: 0,
+    zIndex: 999,
   },
   videoContainer: {
-    flex: 1,
+    // width: '100%',
+    aspectRatio: 16 / 9,
+    backgroundColor: '#000',
+  },
+  video: {
+    width: '100%',
+    height: '100%',
+  },
+  controlsOverlay: {
+    ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
-    overflow: 'hidden',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  playButton: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  playIcon: {
+    marginLeft: 4,
+  },
+  timelineContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 16,
+  },
+  timeline: {
+    height: 4,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 2,
+  },
+  progress: {
+    height: '100%',
+    backgroundColor: '#e50914',
+    borderRadius: 2,
+  },
+  timeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  timeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontFamily: 'Netflix Sans',
+  },
+  infoContainer: {
+    padding: 16,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginVertical: 16,
+    paddingHorizontal: 32,
+  },
+  actionButton: {
+    alignItems: 'center',
+  },
+  actionIcon: {
+    width: 24,
+    height: 24,
+    marginBottom: 8,
+  },
+  actionText: {
+    color: '#777',
+    fontSize: 12,
+    fontFamily: 'Netflix Sans',
+  },
+  selectedAction: {
+    color: '#e50914',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 8,
+    fontFamily: 'Netflix Sans',
+  },
+  matchPercentage: {
+    color: '#46d369',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginRight: 8,
+    fontFamily: 'Netflix Sans',
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  metaText: {
+    color: '#777',
+    fontSize: 14,
+    fontFamily: 'Netflix Sans',
+  },
+  ageBadge: {
+    backgroundColor: '#333',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#777',
+  },
+  ageText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+    fontFamily: 'Netflix Sans',
+  },
+  genreRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 16,
+  },
+  genreText: {
+    color: '#777',
+    fontSize: 14,
+    fontFamily: 'Netflix Sans',
+  },
+  description: {
+    color: '#fff',
+    fontSize: 16,
+    lineHeight: 22,
+    marginBottom: 16,
+    fontFamily: 'Netflix Sans',
+  },
+  episodesSection: {
+    marginTop: 24,
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#222',
+  },
+  episodesHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  episodesTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+    fontFamily: 'Netflix Sans',
+  },
+  seasonSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#333',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 4,
+  },
+  seasonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontFamily: 'Netflix Sans',
+  },
+  episodeItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 8,
+    borderRadius: 4,
+  },
+  episodeNumber: {
+    color: '#777',
+    width: 24,
+    fontFamily: 'Netflix Sans',
+    textAlign: 'center',
+  },
+  episodeThumbnail: {
+    width: 120,
+    height: 68,
+    borderRadius: 4,
+  },
+  episodeInfo: {
+    flex: 1,
+  },
+  episodeTitle: {
+    color: '#fff',
+    fontSize: 16,
+    marginBottom: 4,
+    fontFamily: 'Netflix Sans',
+  },
+  episodeDuration: {
+    color: '#777',
+    fontSize: 14,
+    fontFamily: 'Netflix Sans',
+  },
+  downloadButton: {
+    padding: 8,
+  },
+  selectedEpisodeItem: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 4,
   },
 });
 

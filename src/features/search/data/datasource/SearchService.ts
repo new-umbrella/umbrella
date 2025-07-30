@@ -60,17 +60,26 @@ export const SearchService = {
       return [];
     }
 
-    const searchPromises: Promise<void>[] = [];
-    // Start all plugin searches concurrently without awaiting each one immediately
+    // Run plugin searches sequentially with timeout
     for (const plugin of pluginsToSearch) {
-      searchPromises.push(this._runPluginSearch(plugin, query));
-    }
+      try {
+        // Create a timeout promise that rejects after 5 seconds
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(
+            () => reject(new Error(`Search timeout for plugin ${plugin.name}`)),
+            5000,
+          ),
+        );
 
-    // Wait for all initiated search promises to settle (resolve or reject).
-    // This allows the `search()` function to return only when all background
-    // search operations it launched are complete. The UI, however, updates
-    // reactively via `_runPluginSearch`'s setState calls.
-    await Promise.allSettled(searchPromises);
+        // Race the search against the timeout
+        await Promise.race([
+          this._runPluginSearch(plugin, query),
+          timeoutPromise,
+        ]);
+      } catch (error) {
+        console.error(`Error in search for plugin ${plugin.name}:`, error);
+      }
+    }
 
     // After all individual plugin searches have concluded, return the current state of results.
     return useSearchPageDataStore.getState().results;

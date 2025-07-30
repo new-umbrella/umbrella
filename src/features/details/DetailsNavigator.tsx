@@ -1,420 +1,475 @@
+import React, {useEffect, useState} from 'react';
+import {DetailsViewModel} from './presentation/viewmodels/DetailsViewModel';
+import {useNavigation, useRoute} from '@react-navigation/native';
+import DetailedItem from '../plugins/data/model/item/DetailedItem';
+import Status from '../../core/shared/types/Status';
+import {Plugin} from '../plugins/domain/entities/Plugin';
+import {ActivityIndicator, Text} from 'react-native-paper';
 import {
+  Alert,
+  FlatList,
   View,
   StyleSheet,
-  ImageBackground,
   ScrollView,
+  Image,
+  TouchableOpacity,
   Dimensions,
-  Alert,
-  Linking,
+  StatusBar,
 } from 'react-native';
-import React, {useEffect, useState} from 'react';
-import {useNavigation, useRoute} from '@react-navigation/native';
-import Item from '../plugins/data/model/item/Item';
-import {
-  useTheme,
-  Text,
-  Appbar,
-  Chip,
-  ActivityIndicator,
-  Card,
-  IconButton,
-  Button,
-  DataTable,
-  TouchableRipple,
-} from 'react-native-paper';
-import {DetailsViewModel} from './presentation/viewmodels/DetailsViewModel';
-import DetailedItem from '../plugins/data/model/item/DetailedItem';
 import LinearGradient from 'react-native-linear-gradient';
-import LazyImage from '../../core/shared/components/LazyImage';
-import {useLibraryPageDataStore} from '../library/presentation/state/useLibraryPageDataStore';
-import {useFavoriteStore} from './presentation/state/useFavoriteStore';
-import BottomSheet from '@gorhom/bottom-sheet';
-import {Favorite} from '../library/domain/entities/Favorite';
-import {useExtractorServiceStore} from '../../data/services/extractor/presentation/state/ExtractorServiceStore';
+import {useTheme, Icon, Menu} from 'react-native-paper';
+import CategorySwiper from '../../core/shared/components/CategorySwiper';
+import Category from '../plugins/data/model/item/Category';
+import SourceType from '../plugins/data/model/source/SourceType';
+import RawVideo from '../plugins/data/model/media/RawVideo';
+import {MediaToView} from '../media/domain/entities/MediaToView';
 
-type DetailsNavigatorParams = {
-  item: Item;
-};
+interface RouteParams {
+  itemId: string;
+  plugin: Plugin;
+}
+
+const {width, height} = Dimensions.get('window');
 
 const DetailsNavigator = () => {
   const route = useRoute();
-  const {item} = route.params as DetailsNavigatorParams;
+  const {itemId, plugin} = route.params as RouteParams;
 
-  const theme = useTheme();
+  const [details, setDetails] = useState<DetailedItem | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const detailsViewModel = new DetailsViewModel();
 
   const navigation = useNavigation();
 
-  const [fetchingDetails, setFetchingDetails] = useState(false);
-
-  const detailsViewModel = new DetailsViewModel();
-  const [details, setDetails] = useState<DetailedItem>();
-
   useEffect(() => {
-    const fetchDetails = async () => {
-      setFetchingDetails(true);
-      const details = await detailsViewModel.fetchDetails(
-        item.id,
-        item.source!,
-      );
-      if (details.status === 'success') {
-        setDetails(details.data);
+    fetchItemDetails();
+  }, [itemId, plugin]);
+
+  const fetchItemDetails = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const result = await detailsViewModel.fetchDetails(itemId, plugin);
+
+      if (result.status === 'success') {
+        setDetails(result.data);
+      } else if (result.status === 'error') {
+        setError(result.error || 'Failed to fetch details');
       }
-      setFetchingDetails(false);
-    };
-    if (!item.source) {
-      return;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
     }
-    fetchDetails();
-  }, [item.id]);
+  };
 
-  const [page, setPage] = useState(1);
+  const handlePlay = () => {
+    console.log('Play pressed for item:', itemId);
+    // Implement play functionality
+    (navigation as any).navigate('media' as unknown as never, {
+      media: {
+        type: 'Video',
+        media: [
+          {
+            type: 'RawVideo',
+            url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+            headers: {},
+          },
+        ] as RawVideo[],
+        details: details,
+        index: 0,
+      } as MediaToView,
+    });
+  };
 
-  const [synopsisCutOff, setSynopsisCutOff] = useState(200);
+  const handleDownload = (episode: any) => {
+    console.log('Download episode:', episode.id);
+    // Implement download functionality
+  };
 
-  const [showPlaceholder, setShowPlaceholder] = useState(false);
+  const handleAddToList = () => {
+    console.log('Add to list pressed for item:', itemId);
+    // Implement add to list functionality
+  };
 
-  const {currentProfile} = useLibraryPageDataStore(state => state);
+  const handleShare = () => {
+    console.log('Share pressed for item:', itemId);
+    // Implement share functionality
+  };
 
-  const {
-    setItem: setFavoriteItem,
-    isFavorited,
-    setIsFavorited,
-    visible: favoriteBottomSheetVisible,
-    setVisible: setFavoriteBottomSheetVisible,
-    removeFavorite,
-    updateFavorite,
-  } = useFavoriteStore(state => state);
+  const handleBack = () => {
+    // Navigation handled by React Navigation
+    // console.log('Back pressed');
+    navigation.goBack();
+  };
 
-  useEffect(() => {
-    setFavoriteItem(item);
-  }, [item, setFavoriteItem]);
+  const theme = useTheme();
+  const [activeTab, setActiveTab] = useState<'episodes' | 'more'>('episodes');
+  const [isInList, setIsInList] = useState(false);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [menuVisible, setMenuVisible] = useState(false);
+  const itemsPerPage = 20;
 
-  const bottomSheetRef = React.useRef<BottomSheet>(null);
+  // const handleAddToList = () => {
+  //   setIsInList(!isInList);
+  //   onAddToList();
+  // };
 
-  const extractorBottomSheetRef = React.useRef<BottomSheet>(null);
+  const handleEpisodePress = (episode: any) => {
+    // Video test
+    handlePlay();
+    // Open extractor bottom sheet
+  };
 
-  const [itemInFavorites, setItemInFavorites] = useState<Favorite | undefined>(
-    undefined,
-  );
+  const handleDownloadPress = (episode: any) => {
+    // download episode
+  };
 
-  useEffect(() => {
-    setIsFavorited(false);
-  }, [setIsFavorited]);
-
-  useEffect(() => {
-    const itemFoundInFavorites = currentProfile?.favorites?.filter(
-      fItem =>
-        fItem.item.source?.author === item.source?.author &&
-        fItem.item.source?.name === item.source?.name &&
-        fItem.item.id === item.id,
-    )[0];
-    if (itemFoundInFavorites !== undefined) {
-      setItemInFavorites(itemFoundInFavorites);
-      setIsFavorited(true);
-    } else {
-      setIsFavorited(false);
-    }
-  }, []);
-
-  const {
-    setDetailedItem,
-    mediaIndex,
-    setMediaIndex,
-    rawSources,
-    setBottomSheetVisible: setExtractorBottomSheetVisible,
-    setRawSources,
-  } = useExtractorServiceStore(state => state);
-
-  useEffect(() => {
-    setDetailedItem(details!);
-  }, [details]);
-
-  useEffect(() => {
-    const getRawSources = async (index: number) => {
-      console.log('media', details!.media[index].id);
-      setRawSources(
-        await detailsViewModel
-          .getItemMedia(details!.media[index].id, item.source!)
-          .then(res => {
-            return res;
-          }),
-      );
-    };
-
-    getRawSources(mediaIndex);
-  }, [mediaIndex]);
-
-  if (fetchingDetails) {
+  if (loading) {
     return (
-      <View
-        style={{...styles.container, backgroundColor: theme.colors.background}}>
-        <Appbar.Header>
-          <Appbar.BackAction
-            onPress={() => {
-              navigation.goBack();
-            }}
-          />
-          <Appbar.Content title={item.name} />
-          <Appbar.Action
-            icon="heart"
-            color={isFavorited ? theme.colors.primary : undefined}
-            onPress={() => {
-              if (isFavorited) {
-                removeFavorite(itemInFavorites!.id);
-              } else {
-                setFavoriteBottomSheetVisible(true);
-                bottomSheetRef.current?.snapToIndex(1);
-              }
-            }}
-          />
-          <Appbar.Action
-            icon="bell"
-            color={
-              itemInFavorites?.notify === true
-                ? theme.colors.primary
-                : undefined
-            }
-            onPress={() => {
-              if (isFavorited && itemInFavorites !== undefined) {
-                updateFavorite(itemInFavorites!.id, {
-                  ...itemInFavorites!,
-                  notify: !itemInFavorites.notify,
-                });
-              } else {
-                Alert.alert(
-                  'Unable to enable notifications',
-                  `You must favorite ${item.name} before enabling notifications`,
-                  [{text: 'OK', onPress: () => {}}],
-                );
-              }
-            }}
-          />
-          <Appbar.Action
-            icon="earth"
-            onPress={() => {
-              Linking.openURL(details?.url || '');
-            }}
-          />
-        </Appbar.Header>
-        <ScrollView
-          contentContainerStyle={{
-            flexGrow: 1,
-            height: '100%',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-          <ActivityIndicator size={'large'} />
-        </ScrollView>
+      //   <NetflixDetailsScreen
+      //     show={{
+      //       title: 'Loading...',
+      //       year: '2024',
+      //       rating: 'NR',
+      //       seasons: '1 Season',
+      //       quality: 'HD',
+      //       description: 'Loading item details...',
+      //       genres: [],
+      //       cast: [],
+      //       creators: [],
+      //       episodes: [],
+      //     }}
+      //     onPlay={handlePlay}
+      //     onDownload={handleDownload}
+      //     onAddToList={handleAddToList}
+      //     onShare={handleShare}
+      //     onBack={handleBack}
+      //   />
+      <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+        <ActivityIndicator size="large" />
       </View>
     );
   }
 
-  return (
-    <View
-      style={{...styles.container, backgroundColor: theme.colors.background}}>
-      <Appbar.Header>
-        <Appbar.BackAction
-          onPress={() => {
-            navigation.goBack();
-          }}
-        />
-        <Appbar.Content title={item.name} />
-        <Appbar.Action
-          icon="heart"
-          color={isFavorited ? theme.colors.primary : undefined}
-          onPress={() => {
-            if (isFavorited) {
-              removeFavorite(itemInFavorites!.id);
-            } else {
-              setFavoriteBottomSheetVisible(true);
-              bottomSheetRef.current?.snapToIndex(1);
-            }
-          }}
-        />
-        <Appbar.Action
-          icon="bell"
-          color={
-            itemInFavorites?.notify === true ? theme.colors.primary : undefined
-          }
-          onPress={() => {
-            if (isFavorited && itemInFavorites !== undefined) {
-              updateFavorite(itemInFavorites!.id, {
-                ...itemInFavorites!,
-                notify: !itemInFavorites.notify,
-              });
-            } else {
-              Alert.alert(
-                'Unable to enable notifications',
-                `You must favorite ${item.name} before enabling notifications`,
-                [{text: 'OK', onPress: () => {}}],
-              );
-            }
-          }}
-        />
-        <Appbar.Action
-          icon="earth"
-          onPress={() => {
-            Linking.openURL(details?.url || '');
-          }}
-        />
-      </Appbar.Header>
-      <View style={styles.content}>
-        <ScrollView
-          contentContainerStyle={{flexGrow: 1, width: '100%'}}
-          showsVerticalScrollIndicator={false}>
-          <ImageBackground
-            source={
-              showPlaceholder
-                ? require('../../../assets/images/placeholders/wide.jpg')
-                : {uri: details?.imageUrl}
-            }
-            onError={() => setShowPlaceholder(true)}
-            style={styles.banner}>
-            <LinearGradient
-              colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.85)']}
-              style={{flex: 1}}
-            />
-          </ImageBackground>
-          <View style={styles.detailsWrapper}>
-            <View style={styles.imageAndTitle}>
-              <LazyImage
-                src={details?.imageUrl}
-                placeholderSource="tall"
-                style={{
-                  width: 125,
-                  aspectRatio: 2 / 3,
-                  borderRadius: 8,
-                }}
-              />
-              <View style={styles.headlineInfo}>
-                <Text
-                  variant="headlineMedium"
-                  style={{fontWeight: 'bold'}}
-                  numberOfLines={3}>
-                  {item.name}
-                </Text>
-                <Text variant="bodyLarge">{details?.description}</Text>
-                <Text variant="bodyMedium">{details?.language}</Text>
-                <Text variant="bodyMedium">{details?.releaseDate}</Text>
-                <Text variant="bodyMedium">{details?.status}</Text>
-              </View>
-            </View>
-            <View style={styles.genresWrapper}>
-              <Text
-                variant="titleLarge"
-                style={{fontWeight: 'bold', marginBottom: 8}}>
-                Genres
-              </Text>
-              <View style={styles.genres}>
-                {details?.genres &&
-                  details?.genres.map((genre, index) => (
-                    <Chip
-                      key={index}
-                      style={{
-                        backgroundColor: theme.colors.surface,
-                      }}>
-                      {genre.name}
-                    </Chip>
-                  ))}
-              </View>
-            </View>
-            <View style={styles.genresWrapper}>
-              <Text
-                variant="titleLarge"
-                style={{fontWeight: 'bold', marginBottom: 8}}>
-                Other Names
-              </Text>
-              <View style={styles.genres}>
-                {details?.otherNames &&
-                  details?.otherNames.map((name, index) => (
-                    <Chip
-                      key={index}
-                      style={{
-                        backgroundColor: theme.colors.surface,
-                      }}>
-                      {name}
-                    </Chip>
-                  ))}
-              </View>
-            </View>
-            <Card>
-              <Card.Title title="Synopsis" />
-              <Card.Content>
-                <Text>
-                  {details?.synopsis.slice(0, synopsisCutOff)}
-                  {synopsisCutOff === details?.synopsis.length ? '' : '...'}
-                </Text>
-              </Card.Content>
-              <Card.Actions>
-                <Button
-                  mode="text"
-                  onPress={() => {
-                    if (synopsisCutOff === details?.synopsis.length) {
-                      setSynopsisCutOff(200);
-                    } else {
-                      setSynopsisCutOff(details?.synopsis.length || 0);
-                    }
-                  }}
-                  icon={
-                    synopsisCutOff === details?.synopsis.length
-                      ? 'chevron-up'
-                      : 'chevron-down'
-                  }
-                  contentStyle={{flexDirection: 'row-reverse'}}>
-                  {synopsisCutOff === details?.synopsis.length
-                    ? 'Show less'
-                    : 'Show more'}
-                </Button>
-              </Card.Actions>
-            </Card>
-            <DataTable>
-              <DataTable.Header>
-                <DataTable.Title>Episodes</DataTable.Title>
-                <DataTable.Title numeric>Open</DataTable.Title>
-              </DataTable.Header>
-              {details?.media
-                .sort((a, b) => a.number - b.number)
-                .slice((page - 1) * 10, page * 10)
-                .map((media, index) => (
-                  <TouchableRipple
-                    key={index}
-                    onPress={async () => {
-                      setMediaIndex(details!.media.indexOf(media));
-                      extractorBottomSheetRef.current?.expand();
-                      extractorBottomSheetRef.current?.snapToIndex(0);
-                      setExtractorBottomSheetVisible(true);
-                    }}>
-                    <DataTable.Row key={index}>
-                      <DataTable.Cell>{media.name}</DataTable.Cell>
-                      <DataTable.Cell numeric>
-                        <IconButton icon="play" size={20} />
-                      </DataTable.Cell>
-                    </DataTable.Row>
-                  </TouchableRipple>
-                ))}
-              <DataTable.Pagination
-                page={page}
-                numberOfPages={Math.ceil((details?.media.length || 1) / 10) + 1}
-                onPageChange={page => {
-                  if (page === 0) {
-                    page = 1;
-                  }
-                  setPage(page);
-                }}
-                label={`${page} of ${Math.ceil(
-                  (details?.media.length || 1) / 10,
-                )} pages`}
-                numberOfItemsPerPage={10}
-                onItemsPerPageChange={() => {
-                  setPage(1);
-                }}
-                showFastPaginationControls
-                selectPageDropdownLabel={'Rows per page'}
-              />
-            </DataTable>
-          </View>
-        </ScrollView>
+  if (error) {
+    return (
+      //   <NetflixDetailsScreen
+      //     show={{
+      //       title: 'Error',
+      //       year: '2024',
+      //       rating: 'NR',
+      //       seasons: '1 Season',
+      //       quality: 'HD',
+      //       description: error,
+      //       genres: [],
+      //       cast: [],
+      //       creators: [],
+      //       episodes: [],
+      //     }}
+      //     onPlay={handlePlay}
+      //     onDownload={handleDownload}
+      //     onAddToList={handleAddToList}
+      //     onShare={handleShare}
+      //     onBack={handleBack}
+      //   />
+      // );
+      <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+        <Text>Error: {error}</Text>
       </View>
+    );
+  }
+
+  if (!details) {
+    return (
+      // <NetflixDetailsScreen
+      //   show={{
+      //     title: 'No Data',
+      //     year: '2024',
+      //     rating: 'NR',
+      //     seasons: '1 Season',
+      //     quality: 'HD',
+      //     description: 'No details available',
+      //     genres: [],
+      //     cast: [],
+      //     creators: [],
+      //     episodes: [],
+      //   }}
+      //   onPlay={handlePlay}
+      //   onDownload={handleDownload}
+      //   onAddToList={handleAddToList}
+      //   onShare={handleShare}
+      //   onBack={handleBack}
+      // />
+      <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+        <Text>No details available</Text>
+      </View>
+    );
+  }
+
+  // Transform DetailedItem to NetflixDetailsScreen format
+  // const netflixShow = {
+  //   title: details.name || 'Untitled',
+  //   year: details.releaseDate
+  //     ? new Date(details.releaseDate).getFullYear().toString()
+  //     : new Date().getFullYear().toString(),
+  //   rating: details.rating ? `${details.rating}/10` : 'NR',
+  //   seasons: '1 Season', // Default since we don't have seasons in DetailedItem
+  //   quality: 'HD', // Default quality
+  //   description:
+  //     details.synopsis || details.description || 'No description available',
+  //   genres: details.genres?.map((g: any) => g.name) || [],
+  //   cast: details.creators || [],
+  //   creators: details.creators || [],
+  //   episodes:
+  //     details.media?.map((media: any, index: number) => ({
+  //       id: media.id || index.toString(),
+  //       title: media.name || `Episode ${media.number || index + 1}`,
+  //       duration: media.duration
+  //         ? `${Math.floor(media.duration / 60)}m`
+  //         : '45m',
+  //     })) || [],
+  // };
+
+  return (
+    <View style={styles.container}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}>
+        {/* Hero Section */}
+        <View style={styles.heroSection}>
+          <Image
+            source={{
+              uri: details.imageUrl,
+            }}
+            style={styles.heroImage}
+            resizeMode="cover"
+          />
+
+          <LinearGradient
+            colors={['transparent', 'rgba(0,0,0,1)']}
+            start={{x: 0, y: 0}}
+            end={{x: 0, y: 1}}
+            style={styles.gradient}
+          />
+
+          {/* Back Button */}
+          <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+            <Icon source="arrow-left" size={24} color="#fff" />
+          </TouchableOpacity>
+
+          {/* Hero Content */}
+        </View>
+        <View style={styles.heroContent}>
+          <Text style={styles.title}>{details.name}</Text>
+
+          <View style={styles.metaRow}>
+            {details.releaseDate && (
+              <Text style={styles.metaText}>{details.releaseDate}</Text>
+            )}
+            {details.rating && (
+              <View style={styles.ageBadge}>
+                <Text style={styles.ageText}>{details.rating}</Text>
+              </View>
+            )}
+            <Text style={styles.metaText}>{details.media.length}</Text>
+            <Text style={styles.qualityText}>{details.description}</Text>
+          </View>
+
+          {details.genres && details.genres.length > 0 && (
+            <View style={styles.genreRow}>
+              {details.genres.map((genre, index) => (
+                <Text key={genre.id} style={styles.genreText}>
+                  {genre.name}
+                  {index < (details.genres!.length || 0) - 1 && ' • '}
+                </Text>
+              ))}
+            </View>
+          )}
+
+          {typeof details.creators === 'string' ? (
+            <View style={styles.creatorsRow}>
+              <Text
+                style={{
+                  ...styles.creatorText,
+                  borderColor: theme.colors.primary,
+                }}>
+                {details.creators}
+              </Text>
+            </View>
+          ) : (
+            details.creators &&
+            details.creators.length > 0 && (
+              <View style={styles.creatorsRow}>
+                {details.creators.map((creator, index) => (
+                  <Text
+                    key={index}
+                    style={{
+                      ...styles.creatorText,
+                      borderColor: theme.colors.primary,
+                    }}>
+                    {creator}
+                  </Text>
+                ))}
+              </View>
+            )
+          )}
+
+          {typeof details.otherNames === 'string' ? (
+            <View style={styles.otherNamesRow}>
+              <Text style={styles.otherNameText}>{details.otherNames}</Text>
+            </View>
+          ) : (
+            details.otherNames &&
+            details.otherNames.length > 0 && (
+              <View style={styles.otherNamesRow}>
+                {details.otherNames.map((otherName, index) => (
+                  <Text key={index} style={styles.otherNameText}>
+                    {otherName}
+                  </Text>
+                ))}
+              </View>
+            )
+          )}
+
+          {/* Action Buttons */}
+          <View style={styles.actionRow}>
+            <TouchableOpacity style={styles.playButton} onPress={handlePlay}>
+              <Icon source="play" size={20} color="#000" />
+              <Text style={styles.playButtonText}>Play</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={handleAddToList}>
+              <Icon
+                source={isInList ? 'check' : 'plus'}
+                size={24}
+                color="#fff"
+              />
+              <Text style={styles.secondaryButtonText}>My List</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Content Section */}
+        <View style={styles.contentSection}>
+          <Text style={styles.description}>{details.synopsis}</Text>
+
+          {/* Episodes Section */}
+          <View style={styles.episodesSection}>
+            <View style={styles.episodesHeader}>
+              <Text style={styles.episodesTitle}>Episodes</Text>
+              <Menu
+                visible={menuVisible}
+                onDismiss={() => setMenuVisible(false)}
+                anchor={
+                  <TouchableOpacity
+                    onPress={() => setMenuVisible(true)}
+                    style={styles.seasonSelector}>
+                    <Text style={styles.seasonText}>
+                      {`${currentPage * itemsPerPage + 1}-${Math.min(
+                        (currentPage + 1) * itemsPerPage,
+                        details.media.length,
+                      )}`}
+                    </Text>
+                    <Icon source="chevron-down" size={16} color="#fff" />
+                  </TouchableOpacity>
+                }>
+                {Array.from(
+                  {length: Math.ceil(details.media.length / itemsPerPage)},
+                  (_, i) => (
+                    <Menu.Item
+                      key={i}
+                      onPress={() => {
+                        setCurrentPage(i);
+                        setMenuVisible(false);
+                      }}
+                      title={`${i * itemsPerPage + 1}-${Math.min(
+                        (i + 1) * itemsPerPage,
+                        details.media.length,
+                      )}`}
+                    />
+                  ),
+                )}
+              </Menu>
+            </View>
+
+            {details.media
+              .slice(
+                currentPage * itemsPerPage,
+                (currentPage + 1) * itemsPerPage,
+              )
+              .map((episode, index) => {
+                const globalIndex = currentPage * itemsPerPage + index;
+                return (
+                  <TouchableOpacity
+                    key={episode.id}
+                    onPress={() => handleEpisodePress(episode)}>
+                    <View style={styles.episodeItem}>
+                      <Text
+                        style={{
+                          ...styles.episodeNumber,
+                          fontSize:
+                            (globalIndex + 1).toString().length > 1
+                              ? (globalIndex + 1).toString().length > 2
+                                ? (globalIndex + 1).toString().length > 3
+                                  ? 10
+                                  : 12
+                                : 14
+                              : 16,
+                        }}>
+                        {globalIndex + 1}
+                      </Text>
+
+                      <Image
+                        source={{
+                          uri: episode.imageUrl || details.imageUrl,
+                        }}
+                        style={styles.episodeThumbnail}
+                      />
+
+                      <View style={styles.episodeInfo}>
+                        <Text style={styles.episodeTitle} numberOfLines={2}>
+                          {episode.name}
+                        </Text>
+                        {episode.duration && (
+                          <Text style={styles.episodeDuration}>
+                            {episode.duration}
+                          </Text>
+                        )}
+                      </View>
+
+                      <TouchableOpacity
+                        style={styles.downloadButton}
+                        onPress={() => handleDownloadPress(episode)}>
+                        <Icon source="download" size={24} color="#fff" />
+                      </TouchableOpacity>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+          </View>
+
+          {/* More Like This Section */}
+          {details.related && details.related.length > 0 && (
+            <View style={styles.moreSection}>
+              <CategorySwiper
+                category={{
+                  name: 'More Like This',
+                  url: '',
+                  isPaginated: false,
+                  items: details.related,
+                  source: plugin,
+                }}
+              />
+            </View>
+          )}
+        </View>
+      </ScrollView>
     </View>
   );
 };
@@ -422,47 +477,247 @@ const DetailsNavigator = () => {
 export default DetailsNavigator;
 
 const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   container: {
     flex: 1,
   },
-  content: {},
-  banner: {
-    width: '100%',
-    height: 200,
+  scrollView: {
+    flex: 1,
   },
-  detailsWrapper: {
-    marginTop: -75,
-    width: '100%',
-    rowGap: 8,
-    paddingHorizontal: 8,
-    paddingBottom: 100,
+  heroSection: {
+    height: height / 4,
+    position: 'relative',
   },
-  imageAndTitle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
+  heroImage: {
+    width: '100%',
+    height: '100%',
+  },
+  gradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: '100%',
+  },
+  backButton: {
+    position: 'absolute',
+    top: 16,
+    left: 16,
+    zIndex: 10,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 20,
+    padding: 8,
+  },
+  heroContent: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#fff',
     marginBottom: 8,
   },
-  headlineInfo: {
-    flex: 1,
-    flexDirection: 'column',
-    marginLeft: 8,
-    paddingRight: 8,
-    width: Dimensions.get('window').width - 200,
-    rowGap: 2,
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 8,
   },
-  genresWrapper: {
-    flexDirection: 'column',
-    alignItems: 'flex-start',
+  metaText: {
+    color: '#fff',
+    fontSize: 14,
   },
-  genres: {
+  ageBadge: {
+    backgroundColor: '#333',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 2,
+  },
+  ageText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  qualityText: {
+    color: '#fff',
+    fontSize: 12,
+    backgroundColor: '#333',
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 2,
+  },
+  genreRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    marginBottom: 16,
+  },
+  genreText: {
+    color: '#ccc',
+    fontSize: 14,
+  },
+  creatorsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 16,
     gap: 8,
+  },
+  creatorText: {
+    color: '#fff',
+    fontSize: 14,
+    marginRight: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderWidth: 1,
+    borderRadius: 4,
+  },
+  otherNamesRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 16,
+    gap: 8,
+  },
+  otherNameText: {
+    color: '#fff',
+    backgroundColor: '#333',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 4,
+    fontSize: 14,
+  },
+  actionRow: {
+    flexDirection: 'column',
+    gap: 8,
+    alignItems: 'center',
+  },
+  playButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingHorizontal: 24,
+    paddingVertical: 8,
+    borderRadius: 4,
+    gap: 8,
+    width: '100%',
+    justifyContent: 'center',
+  },
+  playButtonText: {
+    color: '#000',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  secondaryButton: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: 24,
+    paddingVertical: 8,
+    borderRadius: 4,
+    width: '100%',
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  secondaryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  contentSection: {
+    padding: 16,
+  },
+  description: {
+    color: '#ccc',
+    fontSize: 16,
+    lineHeight: 22,
+    marginBottom: 16,
+  },
+  creditsSection: {
+    flexDirection: 'row',
+    marginBottom: 8,
+  },
+  creditsLabel: {
+    color: '#666',
+    fontSize: 14,
+  },
+  creditsText: {
+    color: '#ccc',
+    fontSize: 14,
+    flex: 1,
+  },
+  episodesSection: {
+    marginTop: 24,
+  },
+  episodesHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  episodesTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  seasonSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  seasonText: {
+    color: '#fff',
+    fontSize: 16,
+  },
+  episodeItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+  },
+  episodeNumber: {
+    color: '#666',
+    width: 24,
+  },
+  episodeThumbnail: {
+    width: 120,
+    height: 68,
+    borderRadius: 4,
+  },
+  episodeInfo: {
+    flex: 1,
+  },
+  episodeTitle: {
+    color: '#fff',
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  episodeDuration: {
+    color: '#666',
+    fontSize: 12,
+  },
+  downloadButton: {
+    padding: 8,
+  },
+  moreSection: {
+    marginTop: 24,
+    marginLeft: -16,
+  },
+  moreTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  similarItem: {
+    marginRight: 12,
+  },
+  similarImage: {
+    width: 120,
+    height: 180,
+    borderRadius: 4,
+  },
+  similarTitle: {
+    color: '#fff',
+    fontSize: 12,
+    marginTop: 4,
   },
 });

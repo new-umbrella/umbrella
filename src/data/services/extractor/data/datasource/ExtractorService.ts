@@ -18,13 +18,14 @@ export const ExtractorService = {
   },
 
   async extract(
-    data: ExtractorVideo | ExtractorAudio
+    data: ExtractorVideo | ExtractorAudio,
   ): Promise<RawAudio[] | RawVideo[]> {
+    console.log('Extracting', data);
     const extractors = this.getExtractorsByType(data.type);
     const matchedExtractors: ExtractorInfo[] = extractors.filter(
       (e: ExtractorInfo) =>
         e.patterns.some(p => data.url.match(p)) &&
-        e.extractorMediaType === data.type
+        e.extractorMediaType === data.type,
     );
     console.log(matchedExtractors);
     if (matchedExtractors.length === 0) {

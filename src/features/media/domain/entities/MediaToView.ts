@@ -3,8 +3,8 @@ import RawAudio from '../../../plugins/data/model/media/RawAudio';
 import RawVideo from '../../../plugins/data/model/media/RawVideo';
 
 enum MediaToViewType {
-  Video = 'video',
-  Audio = 'audio',
+  Video = 'Video',
+  Audio = 'Audio',
 }
 
 export interface MediaToView {

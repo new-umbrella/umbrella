@@ -71,6 +71,7 @@ const ExtractorSourcesBottomSheet = ({
         | ExtractorVideo
         | RawVideo
       )[] = [];
+      console.log('rawSources', rawSources);
       rawSources.map(source => {
         if (
           source.type === MediaType.ExtractorAudio ||
