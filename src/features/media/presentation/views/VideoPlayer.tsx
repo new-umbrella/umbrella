@@ -66,6 +66,9 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   );
   const [playbackRate, setPlaybackRate] = useState(1.0);
   const [isScreenLocked, setIsScreenLocked] = useState(false);
+  const [controlsVisible, setControlsVisible] = useState(true);
+  const [speedFeedbackVisible, setSpeedFeedbackVisible] = useState(false);
+  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   // const [selectedQuality, setSelectedQuality] = useState<QualityOption | null>(
   //   null,
   // );
@@ -73,6 +76,23 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   useEffect(() => {
     setIsPlaying(!paused);
   }, [paused]);
+
+  // Initialize controls timer
+  useEffect(() => {
+    resetControlsTimer();
+    return () => {
+      if (controlsTimeoutRef.current) {
+        clearTimeout(controlsTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Reset timer when playing state changes
+  useEffect(() => {
+    if (isPlaying && !isScreenLocked) {
+      resetControlsTimer();
+    }
+  }, [isPlaying]);
 
   const handlePlayPause = () => {
     setIsPlaying(prev => !prev);
@@ -102,15 +122,63 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     videoRef.current?.seek(clampedValue);
   };
 
+  const resetControlsTimer = () => {
+    if (controlsTimeoutRef.current) {
+      clearTimeout(controlsTimeoutRef.current);
+    }
+    if (!isScreenLocked) {
+      setControlsVisible(true);
+      controlsTimeoutRef.current = setTimeout(() => {
+        setControlsVisible(false);
+      }, 3000); // Hide after 3 seconds
+    }
+  };
+
+  const handleControlsInteraction = () => {
+    resetControlsTimer();
+  };
+
+  const handleVideoPress = () => {
+    if (isScreenLocked) {
+      return; // Don't show controls when locked
+    }
+    setControlsVisible(prev => !prev);
+    if (!controlsVisible) {
+      resetControlsTimer();
+    }
+  };
+
   const handlePlaybackSpeedChange = () => {
     const speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
     const currentIndex = speeds.indexOf(playbackRate);
     const nextIndex = (currentIndex + 1) % speeds.length;
-    setPlaybackRate(speeds[nextIndex]);
+    const newSpeed = speeds[nextIndex];
+    setPlaybackRate(newSpeed);
+    
+    // Show speed feedback in center
+    setSpeedFeedbackVisible(true);
+    setTimeout(() => {
+      setSpeedFeedbackVisible(false);
+    }, 2000); // Hide after 2 seconds
+    
+    handleControlsInteraction();
   };
 
   const handleScreenLockToggle = () => {
-    setIsScreenLocked(prev => !prev);
+    setIsScreenLocked(prev => {
+      const newLocked = !prev;
+      if (newLocked) {
+        // When locking, hide all controls except unlock button
+        setControlsVisible(false);
+        if (controlsTimeoutRef.current) {
+          clearTimeout(controlsTimeoutRef.current);
+        }
+      } else {
+        // When unlocking, show controls and start timer
+        resetControlsTimer();
+      }
+      return newLocked;
+    });
   };
 
   const [dimensions, setDimensions] = useState(Dimensions.get('window'));
@@ -233,58 +301,81 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
             width: Dimensions.get('screen').width,
             aspectRatio: undefined,
           }}>
-          <Video
-            ref={videoRef}
-            source={{
-              uri: media?.media[selectedEpisode].url,
-              headers: media?.media[selectedEpisode].headers,
-            }}
-            paused={!isPlaying}
-            rate={playbackRate}
-            onEnd={onEnd}
-            onBuffer={() => setIsBuffering(true)}
-            onReadyForDisplay={() => setIsBuffering(false)}
-            onProgress={handleProgress}
-            onLoad={handleLoad}
+          <TouchableOpacity
             style={{
               width: Dimensions.get('screen').width,
               height: Dimensions.get('screen').height,
-              aspectRatio: undefined,
               position: 'absolute',
-              zIndex: 1000,
+              zIndex: 999,
             }}
-            resizeMode="contain"
-          />
-          <VideoPlayerControls
-            isPlaying={isPlaying}
-            progress={progress}
-            currentTime={currentTime}
-            duration={duration}
-            onTogglePlay={handlePlayPause}
-            onSeek={handleSeek}
-            onSkipAndRewind={handleSkipAndRewind}
-            subtitles={[...(media?.media.map((m: any) => m.subtitle) || [])]}
-            selectedSubtitle={selectedSubtitle}
-            onSelectSubtitle={setSelectedSubtitle}
-            isFullscreen={isFullscreen}
-            onToggleFullscreen={toggleFullscreen}
-            onEnterFullscreen={enterFullscreen}
-            onExitFullscreen={exitFullscreen}
-            playbackRate={playbackRate}
-            onPlaybackSpeedChange={handlePlaybackSpeedChange}
-            isScreenLocked={isScreenLocked}
-            onScreenLockToggle={handleScreenLockToggle}
-          />
-        </View>
+            activeOpacity={1}
+            onPress={handleVideoPress}>
+            <Video
+              ref={videoRef}
+              source={{
+                uri: media?.media[selectedEpisode].url,
+                headers: media?.media[selectedEpisode].headers,
+              }}
+              paused={!isPlaying}
+              rate={playbackRate}
+              onEnd={onEnd}
+              onBuffer={() => setIsBuffering(true)}
+              onReadyForDisplay={() => setIsBuffering(false)}
+              onProgress={handleProgress}
+              onLoad={handleLoad}
+              style={{
+                width: Dimensions.get('screen').width,
+                height: Dimensions.get('screen').height,
+                aspectRatio: undefined,
+              }}
+              resizeMode="contain"
+            />
+          </TouchableOpacity>
+          
+          {/* Speed Feedback Overlay */}
+          {speedFeedbackVisible && (
+            <View style={styles.speedFeedbackOverlay}>
+              <Text style={styles.speedFeedbackText}>
+                Playback Speed: {playbackRate}x
+              </Text>
+            </View>
+          )}
+          {(controlsVisible || isScreenLocked) && (
+            <VideoPlayerControls
+              isPlaying={isPlaying}
+              progress={progress}
+              currentTime={currentTime}
+              duration={duration}
+              onTogglePlay={handlePlayPause}
+              onSeek={handleSeek}
+              onSkipAndRewind={handleSkipAndRewind}
+              subtitles={[...(media?.media.map((m: any) => m.subtitle) || [])]}
+              selectedSubtitle={selectedSubtitle}
+              onSelectSubtitle={setSelectedSubtitle}
+              isFullscreen={isFullscreen}
+              onToggleFullscreen={toggleFullscreen}
+              onEnterFullscreen={enterFullscreen}
+              onExitFullscreen={exitFullscreen}
+              playbackRate={playbackRate}
+              onPlaybackSpeedChange={handlePlaybackSpeedChange}
+              isScreenLocked={isScreenLocked}
+              onScreenLockToggle={handleScreenLockToggle}
+            />
+          )}
       </View>
-    );
+    </View>
+  );
   }
 
   return (
     <ScrollView style={styles.container}>
-      <StatusBar hidden={false} />
-      {/* Video Player Section */}
-      <View style={styles.videoContainer}>
+    <StatusBar hidden={false} />
+    {/* Video Player Section */}
+    <View style={styles.videoContainer}>
+      <TouchableOpacity
+        style={styles.videoContainer}
+        activeOpacity={1}
+        onPress={handleVideoPress}>
         <Video
           ref={videoRef}
           source={{
@@ -301,6 +392,17 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           style={styles.videoContainer}
           resizeMode="contain"
         />
+      </TouchableOpacity>
+      
+      {/* Speed Feedback Overlay */}
+      {speedFeedbackVisible && (
+        <View style={styles.speedFeedbackOverlay}>
+          <Text style={styles.speedFeedbackText}>
+            Playback Speed: {playbackRate}x
+          </Text>
+        </View>
+      )}
+      {(controlsVisible || isScreenLocked) && (
         <VideoPlayerControls
           isPlaying={isPlaying}
           progress={progress}
@@ -321,11 +423,12 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           isScreenLocked={isScreenLocked}
           onScreenLockToggle={handleScreenLockToggle}
         />
-      </View>
+      )}
+    </View>
 
-      {/* Media Info Section */}
-      {media?.details && (
-        <View style={styles.infoContainer}>
+    {/* Media Info Section */}
+    {media?.details && (
+      <View style={styles.infoContainer}>
           <Text style={styles.title}>{media.details.name}</Text>
 
           <View style={styles.metaRow}>
@@ -677,8 +780,25 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   selectedEpisodeItem: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 4,
+    backgroundColor: '#333',
+  },
+  speedFeedbackOverlay: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: [{translateX: -100}, {translateY: -25}],
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    zIndex: 2000,
+  },
+  speedFeedbackText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    fontFamily: 'Netflix Sans',
   },
 });
 

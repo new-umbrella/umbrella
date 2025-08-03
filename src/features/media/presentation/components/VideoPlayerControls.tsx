@@ -26,6 +26,8 @@ interface VideoPlayerControlsProps {
   onPlaybackSpeedChange?: () => void;
   isScreenLocked?: boolean;
   onScreenLockToggle?: () => void;
+  controlsVisible?: boolean;
+  onControlsInteraction?: () => void;
 }
 
 const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
@@ -50,6 +52,8 @@ const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
   onPlaybackSpeedChange = () => {},
   isScreenLocked = false,
   onScreenLockToggle = () => {},
+  controlsVisible = true,
+  onControlsInteraction = () => {},
 }) => {
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -57,12 +61,27 @@ const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
+  // When screen is locked, only show unlock button
+  if (isScreenLocked) {
+    return (
+      <View style={[styles.container, styles.lockedContainer, styles.transparentContainer]}>
+        <TouchableOpacity
+          style={styles.unlockButton}
+          onPress={onScreenLockToggle}>
+          <Icon name="lock-open" size={32} color="white" />
+          {/* <Text style={styles.unlockText}>Tap to unlock</Text> */}
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <View
       style={[
         styles.container,
         isFullscreen && {width: '100%', height: '100%'},
-      ]}>
+      ]}
+      onTouchStart={onControlsInteraction}>
       {/* Top Controls */}
       <View style={styles.topControls}>
         <TouchableOpacity onPress={onMirror} style={styles.topButton}>
@@ -253,6 +272,27 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.8)',
     paddingHorizontal: 2,
     borderRadius: 2,
+  },
+  lockedContainer: {
+    justifyContent: 'flex-end',
+    alignItems: 'flex-start',
+    paddingBottom: 40,
+    paddingLeft: 20,
+  },
+  unlockButton: {
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    borderRadius: 8,
+  },
+  unlockText: {
+    color: 'white',
+    fontSize: 14,
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  transparentContainer: {
+    backgroundColor: 'transparent',
   },
 });
 
