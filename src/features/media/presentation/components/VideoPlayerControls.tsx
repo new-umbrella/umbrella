@@ -7,6 +7,7 @@ import {Subtitle} from '../../../plugins/data/model/media/Subtitle';
 interface VideoPlayerControlsProps {
   isPlaying: boolean;
   progress: number;
+  bufferedProgress?: number;
   currentTime: number;
   duration: number;
   title?: string;
@@ -33,6 +34,7 @@ interface VideoPlayerControlsProps {
 const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
   isPlaying,
   progress,
+  bufferedProgress = 0,
   currentTime,
   duration,
   title,
@@ -120,16 +122,35 @@ const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
       <View style={styles.bottomControls}>
         <View style={styles.progressContainer}>
           <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
-          <Slider
-            style={styles.progressBar}
-            value={progress}
-            onValueChange={onSeek}
-            minimumTrackTintColor="#E50914"
-            maximumTrackTintColor="rgba(255,255,255,0.5)"
-            thumbTintColor="#E50914"
-            minimumValue={0}
-            maximumValue={1}
-          />
+          <View style={styles.progressBarContainer}>
+            {/* Background track */}
+            <View style={styles.progressTrack} />
+            {/* Buffered progress */}
+            <View 
+              style={[
+                styles.bufferedProgress, 
+                { width: `${bufferedProgress * 100}%` }
+              ]} 
+            />
+            {/* Current progress */}
+            <View 
+              style={[
+                styles.currentProgress, 
+                { width: `${progress * 100}%` }
+              ]} 
+            />
+            {/* Interactive overlay for seeking */}
+            <Slider
+              style={styles.progressSlider}
+              value={progress}
+              onValueChange={onSeek}
+              minimumTrackTintColor="transparent"
+              maximumTrackTintColor="transparent"
+              thumbTintColor="#E50914"
+              minimumValue={0}
+              maximumValue={1}
+            />
+          </View>
           <Text style={styles.timeText}>{formatTime(duration)}</Text>
         </View>
         <View
@@ -249,6 +270,50 @@ const styles = StyleSheet.create({
   progressBar: {
     flex: 1,
     marginHorizontal: 8,
+  },
+  progressBarContainer: {
+    flex: 1,
+    height: 40,
+    marginHorizontal: 8,
+    position: 'relative',
+    justifyContent: 'center',
+    paddingHorizontal: 0,
+  },
+  progressTrack: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 4,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 2,
+    marginHorizontal: 16,
+  },
+  bufferedProgress: {
+    position: 'absolute',
+    height: 4,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+    borderRadius: 2,
+    zIndex: 1,
+    left: 0,
+    marginLeft: 16,
+  },
+  currentProgress: {
+    position: 'absolute',
+    height: 4,
+    backgroundColor: '#E50914',
+    borderRadius: 2,
+    zIndex: 2,
+    left: 0,
+    marginLeft: 16,
+  },
+  progressSlider: {
+    position: 'absolute',
+    width: '100%',
+    height: 40,
+    zIndex: 3,
+    left: 0,
+    right: 0,
+    marginHorizontal: 0,
   },
   timeText: {
     color: 'white',
