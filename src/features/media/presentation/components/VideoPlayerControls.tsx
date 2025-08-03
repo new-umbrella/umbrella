@@ -22,6 +22,10 @@ interface VideoPlayerControlsProps {
   onToggleFullscreen: () => void;
   onEnterFullscreen?: () => void;
   onExitFullscreen?: () => void;
+  playbackRate?: number;
+  onPlaybackSpeedChange?: () => void;
+  isScreenLocked?: boolean;
+  onScreenLockToggle?: () => void;
 }
 
 const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
@@ -42,6 +46,10 @@ const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
   onToggleFullscreen = () => {},
   onEnterFullscreen = () => {},
   onExitFullscreen = () => {},
+  playbackRate = 1.0,
+  onPlaybackSpeedChange = () => {},
+  isScreenLocked = false,
+  onScreenLockToggle = () => {},
 }) => {
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -118,11 +126,22 @@ const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
           </TouchableOpacity>
 
           <View style={styles.bottomButtons}>
-            <TouchableOpacity style={styles.bottomButton}>
-              <Icon name="speed" size={24} color="white" />
+            <TouchableOpacity 
+              style={styles.bottomButton}
+              onPress={onPlaybackSpeedChange}>
+              <Icon name="speed" size={24} color={playbackRate !== 1.0 ? '#E50914' : 'white'} />
+              {playbackRate !== 1.0 && (
+                <Text style={styles.speedText}>{playbackRate}x</Text>
+              )}
             </TouchableOpacity>
-            <TouchableOpacity style={styles.bottomButton}>
-              <Icon name="lock" size={24} color="white" />
+            <TouchableOpacity 
+              style={styles.bottomButton}
+              onPress={onScreenLockToggle}>
+              <Icon 
+                name={isScreenLocked ? "lock" : "lock-open"} 
+                size={24} 
+                color={isScreenLocked ? '#E50914' : 'white'} 
+              />
             </TouchableOpacity>
             {subtitles.length > 0 && (
               <TouchableOpacity
@@ -223,6 +242,17 @@ const styles = StyleSheet.create({
   bottomButton: {
     padding: 8,
     marginHorizontal: 16,
+  },
+  speedText: {
+    color: '#E50914',
+    fontSize: 10,
+    fontWeight: 'bold',
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    paddingHorizontal: 2,
+    borderRadius: 2,
   },
 });
 

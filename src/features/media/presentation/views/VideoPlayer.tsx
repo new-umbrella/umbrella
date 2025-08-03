@@ -64,6 +64,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [selectedSubtitle, setSelectedSubtitle] = useState<Subtitle | null>(
     null,
   );
+  const [playbackRate, setPlaybackRate] = useState(1.0);
+  const [isScreenLocked, setIsScreenLocked] = useState(false);
   // const [selectedQuality, setSelectedQuality] = useState<QualityOption | null>(
   //   null,
   // );
@@ -89,11 +91,26 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   };
 
   const handleSeek = (value: number) => {
-    setCurrentTime(value * duration);
+    const seekTime = value * duration;
+    setCurrentTime(seekTime);
+    videoRef.current?.seek(seekTime);
   };
 
   const handleSkipAndRewind = (value: number) => {
-    setCurrentTime(value);
+    const clampedValue = Math.max(0, Math.min(value, duration));
+    setCurrentTime(clampedValue);
+    videoRef.current?.seek(clampedValue);
+  };
+
+  const handlePlaybackSpeedChange = () => {
+    const speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+    const currentIndex = speeds.indexOf(playbackRate);
+    const nextIndex = (currentIndex + 1) % speeds.length;
+    setPlaybackRate(speeds[nextIndex]);
+  };
+
+  const handleScreenLockToggle = () => {
+    setIsScreenLocked(prev => !prev);
   };
 
   const [dimensions, setDimensions] = useState(Dimensions.get('window'));
@@ -212,9 +229,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         <View
           style={{
             ...styles.videoContainer,
-            height: Dimensions.get('window').height +
-              (Dimensions.get('screen').height -
-                Dimensions.get('window').height),
+            height: Dimensions.get('screen').height,
             width: Dimensions.get('screen').width,
             aspectRatio: undefined,
           }}>
@@ -225,14 +240,15 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
               headers: media?.media[selectedEpisode].headers,
             }}
             paused={!isPlaying}
+            rate={playbackRate}
             onEnd={onEnd}
             onBuffer={() => setIsBuffering(true)}
             onReadyForDisplay={() => setIsBuffering(false)}
             onProgress={handleProgress}
             onLoad={handleLoad}
             style={{
-              width: dimensions.width,
-              height: dimensions.height,
+              width: Dimensions.get('screen').width,
+              height: Dimensions.get('screen').height,
               aspectRatio: undefined,
               position: 'absolute',
               zIndex: 1000,
@@ -254,6 +270,10 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
             onToggleFullscreen={toggleFullscreen}
             onEnterFullscreen={enterFullscreen}
             onExitFullscreen={exitFullscreen}
+            playbackRate={playbackRate}
+            onPlaybackSpeedChange={handlePlaybackSpeedChange}
+            isScreenLocked={isScreenLocked}
+            onScreenLockToggle={handleScreenLockToggle}
           />
         </View>
       </View>
@@ -272,6 +292,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
             headers: media?.media[selectedEpisode].headers,
           }}
           paused={!isPlaying}
+          rate={playbackRate}
           onEnd={onEnd}
           onBuffer={() => setIsBuffering(true)}
           onReadyForDisplay={() => setIsBuffering(false)}
@@ -295,6 +316,10 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           onToggleFullscreen={toggleFullscreen}
           onEnterFullscreen={enterFullscreen}
           onExitFullscreen={exitFullscreen}
+          playbackRate={playbackRate}
+          onPlaybackSpeedChange={handlePlaybackSpeedChange}
+          isScreenLocked={isScreenLocked}
+          onScreenLockToggle={handleScreenLockToggle}
         />
       </View>
 
