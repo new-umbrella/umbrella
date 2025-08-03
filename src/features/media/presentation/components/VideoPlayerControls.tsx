@@ -70,7 +70,7 @@ const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
         <TouchableOpacity
           style={styles.unlockButton}
           onPress={onScreenLockToggle}>
-          <Icon name="lock-open" size={32} color="white" />
+          <Icon name="lock" size={32} color="white" />
           {/* <Text style={styles.unlockText}>Tap to unlock</Text> */}
         </TouchableOpacity>
       </View>
@@ -122,7 +122,7 @@ const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
       <View style={styles.bottomControls}>
         <View style={styles.progressContainer}>
           <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
-          <View style={styles.progressBarContainer}>
+          <View style={{...styles.progressBarContainer, marginBottom: isFullscreen ? 16 : 0}}>
             {/* Background track */}
             <View style={styles.progressTrack} />
             {/* Buffered progress */}
@@ -170,9 +170,9 @@ const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
               style={styles.bottomButton}
               onPress={onPlaybackSpeedChange}>
               <Icon name="speed" size={24} color={playbackRate !== 1.0 ? '#E50914' : 'white'} />
-              {playbackRate !== 1.0 && (
+              {/* {playbackRate !== 1.0 && (
                 <Text style={styles.speedText}>{playbackRate}x</Text>
-              )}
+              )} */}
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.bottomButton}
@@ -265,7 +265,6 @@ const styles = StyleSheet.create({
   progressContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
   },
   progressBar: {
     flex: 1,
@@ -291,7 +290,7 @@ const styles = StyleSheet.create({
   bufferedProgress: {
     position: 'absolute',
     height: 4,
-    backgroundColor: 'rgba(128,128,128,0.8)',
+    backgroundColor: 'rgba(175, 175, 175, 0.8)',
     borderRadius: 2,
     zIndex: 1,
     left: 0,
