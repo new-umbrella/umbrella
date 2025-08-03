@@ -57,6 +57,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [isBuffering, setIsBuffering] = useState(false);
   const [isPlaying, setIsPlaying] = useState(!paused);
   const [progress, setProgress] = useState(0);
+  const [bufferedProgress, setBufferedProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -103,7 +104,18 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     playableDuration: number;
   }) => {
     setCurrentTime(data.currentTime);
-    setProgress(data.currentTime / duration);
+    if (duration > 0) {
+      setProgress(data.currentTime / duration);
+      // Always update buffered progress, but ensure it's at least as much as current progress
+      const newBufferedProgress = Math.max(data.playableDuration / duration, data.currentTime / duration);
+      if (newBufferedProgress > 0) {
+        setBufferedProgress(prev => Math.max(prev, newBufferedProgress));
+      }
+    }
+  };
+
+  const handleBuffer = (data: {isBuffering: boolean}) => {
+    setIsBuffering(data.isBuffering);
   };
 
   const handleLoad = (data: {duration: number}) => {
@@ -319,7 +331,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
               paused={!isPlaying}
               rate={playbackRate}
               onEnd={onEnd}
-              onBuffer={() => setIsBuffering(true)}
+              onBuffer={handleBuffer}
               onReadyForDisplay={() => setIsBuffering(false)}
               onProgress={handleProgress}
               onLoad={handleLoad}
@@ -344,6 +356,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
             <VideoPlayerControls
               isPlaying={isPlaying}
               progress={progress}
+              bufferedProgress={bufferedProgress}
               currentTime={currentTime}
               duration={duration}
               onTogglePlay={handlePlayPause}
@@ -385,7 +398,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           paused={!isPlaying}
           rate={playbackRate}
           onEnd={onEnd}
-          onBuffer={() => setIsBuffering(true)}
+          onBuffer={handleBuffer}
           onReadyForDisplay={() => setIsBuffering(false)}
           onProgress={handleProgress}
           onLoad={handleLoad}
@@ -406,6 +419,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         <VideoPlayerControls
           isPlaying={isPlaying}
           progress={progress}
+          bufferedProgress={bufferedProgress}
           currentTime={currentTime}
           duration={duration}
           onTogglePlay={handlePlayPause}
