@@ -204,18 +204,67 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     );
   }
 
+  if (isFullscreen) {
+    return (
+      <View style={[styles.container, styles.fullscreenContainer]}>
+        <StatusBar hidden={true} />
+        {/* Fullscreen Video Player Only */}
+        <View
+          style={{
+            ...styles.videoContainer,
+            height: Dimensions.get('window').height +
+              (Dimensions.get('screen').height -
+                Dimensions.get('window').height),
+            width: Dimensions.get('screen').width,
+            aspectRatio: undefined,
+          }}>
+          <Video
+            ref={videoRef}
+            source={{
+              uri: media?.media[selectedEpisode].url,
+              headers: media?.media[selectedEpisode].headers,
+            }}
+            paused={!isPlaying}
+            onEnd={onEnd}
+            onBuffer={() => setIsBuffering(true)}
+            onReadyForDisplay={() => setIsBuffering(false)}
+            onProgress={handleProgress}
+            onLoad={handleLoad}
+            style={{
+              width: dimensions.width,
+              height: dimensions.height,
+              aspectRatio: undefined,
+              position: 'absolute',
+              zIndex: 1000,
+            }}
+            resizeMode="contain"
+          />
+          <VideoPlayerControls
+            isPlaying={isPlaying}
+            progress={progress}
+            currentTime={currentTime}
+            duration={duration}
+            onTogglePlay={handlePlayPause}
+            onSeek={handleSeek}
+            onSkipAndRewind={handleSkipAndRewind}
+            subtitles={[...(media?.media.map((m: any) => m.subtitle) || [])]}
+            selectedSubtitle={selectedSubtitle}
+            onSelectSubtitle={setSelectedSubtitle}
+            isFullscreen={isFullscreen}
+            onToggleFullscreen={toggleFullscreen}
+            onEnterFullscreen={enterFullscreen}
+            onExitFullscreen={exitFullscreen}
+          />
+        </View>
+      </View>
+    );
+  }
+
   return (
-    <ScrollView
-      style={[styles.container, isFullscreen && styles.fullscreenContainer]}>
-      <StatusBar hidden={isFullscreen} />
+    <ScrollView style={styles.container}>
+      <StatusBar hidden={false} />
       {/* Video Player Section */}
-      <View
-        style={{
-          ...styles.videoContainer,
-          height: isFullscreen ? Dimensions.get('window').height : undefined,
-          width: isFullscreen ? Dimensions.get('screen').width : '100%',
-          aspectRatio: isFullscreen ? undefined : 16 / 9,
-        }}>
+      <View style={styles.videoContainer}>
         <Video
           ref={videoRef}
           source={{
@@ -228,16 +277,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           onReadyForDisplay={() => setIsBuffering(false)}
           onProgress={handleProgress}
           onLoad={handleLoad}
-          style={[
-            styles.videoContainer,
-            isFullscreen && {
-              width: dimensions.width,
-              height: dimensions.height,
-              aspectRatio: undefined,
-              position: 'absolute',
-              zIndex: 1000,
-            },
-          ]}
+          style={styles.videoContainer}
           resizeMode="contain"
         />
         <VideoPlayerControls
@@ -249,11 +289,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           onSeek={handleSeek}
           onSkipAndRewind={handleSkipAndRewind}
           subtitles={[...(media?.media.map((m: any) => m.subtitle) || [])]}
-          // qualities={qualities}
           selectedSubtitle={selectedSubtitle}
-          // selectedQuality={selectedQuality}
           onSelectSubtitle={setSelectedSubtitle}
-          // onSelectQuality={setSelectedQuality}
           isFullscreen={isFullscreen}
           onToggleFullscreen={toggleFullscreen}
           onEnterFullscreen={enterFullscreen}
