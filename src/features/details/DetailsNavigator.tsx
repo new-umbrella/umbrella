@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useRef} from 'react';
 import {DetailsViewModel} from './presentation/viewmodels/DetailsViewModel';
 import {useNavigation, useRoute} from '@react-navigation/native';
 import DetailedItem from '../plugins/data/model/item/DetailedItem';
@@ -30,6 +30,8 @@ import {
 } from '../library/domain/entities/Favorite';
 import Item from '../plugins/data/model/item/Item';
 import {useFavoriteStore} from './presentation/state/useFavoriteStore';
+import {useExtractorServiceStore} from '../../data/services/extractor/presentation/state/ExtractorServiceStore';
+import BottomSheet from '@gorhom/bottom-sheet';
 
 interface RouteParams {
   itemId: string;
@@ -49,6 +51,16 @@ const DetailsNavigator = () => {
   const detailsViewModel = new DetailsViewModel();
 
   const navigation = useNavigation();
+
+  // ExtractorServiceStore for handling episode extraction
+  const {
+    setDetailedItem,
+    setMediaIndex,
+    setBottomSheetVisible,
+    setRawSources,
+    mediaIndex,
+    rawSources,
+  } = useExtractorServiceStore(state => state);
 
   useEffect(() => {
     fetchItemDetails();
@@ -72,6 +84,26 @@ const DetailsNavigator = () => {
       setLoading(false);
     }
   };
+
+  // useEffect(() => {
+  //   const getRawSources = async (index: number) => {
+  //     console.log("index", index)
+  //     console.log(await detailsViewModel.getItemMedia(
+  //       details!.media[index].id,
+  //       plugin,
+  //     ))
+  //     setRawSources(
+  //       await detailsViewModel.getItemMedia(
+  //         details!.media[index].id,
+  //         plugin,
+  //       ),
+  //     );
+  //   };
+
+  //   getRawSources(mediaIndex);
+  // }, [mediaIndex]);
+
+  // console.log('rawSources', rawSources);
 
   const handlePlay = () => {
     console.log('Play pressed for item:', itemId);
@@ -172,10 +204,28 @@ const DetailsNavigator = () => {
   //   onAddToList();
   // };
 
-  const handleEpisodePress = (episode: any) => {
-    // Video test
-    handlePlay();
-    // Open extractor bottom sheet
+  const getRawSources = async (index: number) => {
+    console.log('index', index);
+    // console.log('path', plugin.pluginPath);
+    // console.log('id', details!.media[index].id);
+    // console.log('getItemMedia', detailsViewModel.getItemMedia);
+    console.log(
+      await detailsViewModel.getItemMedia(details!.media[index].id, plugin),
+    );
+    setRawSources(
+      await detailsViewModel.getItemMedia(details!.media[index].id, plugin),
+    );
+  };
+
+  const handleEpisodePress = async (episodeIndex: number) => {
+    if (details) {
+      // Set the detailed item and media index in the extractor store
+      setDetailedItem(details);
+      setMediaIndex(episodeIndex);
+      await getRawSources(episodeIndex);
+      // Open the extractor bottom sheet
+      setBottomSheetVisible(true);
+    }
   };
 
   const handleDownloadPress = (episode: any) => {
@@ -392,7 +442,8 @@ const DetailsNavigator = () => {
                 return (
                   <TouchableOpacity
                     key={episode.id}
-                    onPress={() => handleEpisodePress(episode)}>
+                    //  onPress={() => handlePlay()}>
+                    onPress={async () => await handleEpisodePress(globalIndex)}>
                     <View style={styles.episodeItem}>
                       <Text
                         style={{

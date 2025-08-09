@@ -1,10 +1,10 @@
-import {View, Text, StyleSheet, Dimensions, StatusBar} from 'react-native';
-import React, {useEffect, useRef, useState} from 'react';
-import {useTheme} from 'react-native-paper';
-import BottomSheet, {BottomSheetScrollView} from '@gorhom/bottom-sheet';
-import {useSearchPageDataStore} from '../state/useSearchPageDataStore';
-import {BottomSheetMethods} from '@gorhom/bottom-sheet/lib/typescript/types';
-import {SearchViewModel} from '../viewmodels/SearchViewModel';
+import { View, Text, StyleSheet, Dimensions, StatusBar } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { useTheme } from 'react-native-paper';
+import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import { useSearchPageDataStore } from '../state/useSearchPageDataStore';
+import { BottomSheetMethods } from '@gorhom/bottom-sheet/lib/typescript/types';
+import { SearchViewModel } from '../viewmodels/SearchViewModel';
 import ItemCard from '../../../../core/shared/components/ItemCard';
 
 const PaginationBottomSheet = ({
@@ -12,14 +12,14 @@ const PaginationBottomSheet = ({
   // page,
   bottomSheetRef,
 }: // scrollOffset,
-// contentHeight,
-{
-  // getNextPage: (page: number) => Promise<void>;
-  // page: number;
-  bottomSheetRef: React.RefObject<BottomSheetMethods>;
-  // scrollOffset: number;
-  // contentHeight: number;
-}) => {
+  // contentHeight,
+  {
+    // getNextPage: (page: number) => Promise<void>;
+    // page: number;
+    bottomSheetRef: React.RefObject<BottomSheetMethods>;
+    // scrollOffset: number;
+    // contentHeight: number;
+  }) => {
   const searchViewModel = new SearchViewModel();
 
   const {
@@ -27,6 +27,7 @@ const PaginationBottomSheet = ({
     bottomSheetItems,
     setBottomSheetItems,
     setBottomSheetVisible,
+    bottomSheetVisible,
   } = useSearchPageDataStore();
 
   useEffect(() => {
@@ -42,7 +43,7 @@ const PaginationBottomSheet = ({
   const [isAtBottom, setIsAtBottom] = useState(false);
 
   const onScrollToBottom = (event: any) => {
-    const {layoutMeasurement, contentOffset, contentSize} = event.nativeEvent;
+    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
     const paddingToBottom = 20;
 
     if (
@@ -91,9 +92,9 @@ const PaginationBottomSheet = ({
     //   }}>
     <BottomSheet
       ref={bottomSheetRef}
-      index={0}
+      index={bottomSheetVisible ? 0 : -1}
       snapPoints={['25%', '50%', '75%']}
-      handleStyle={{backgroundColor: theme.colors.surface}}
+      handleStyle={{ backgroundColor: theme.colors.surface }}
       enablePanDownToClose={true}
       enableDynamicSizing={true}
       onClose={() => {
@@ -120,7 +121,7 @@ const PaginationBottomSheet = ({
           }}>
           {bottomSheetItems.map((item, index) => (
             <View key={index} style={styles.cardWrapper}>
-              <ItemCard item={{...item, source: bottomSheetActivePlugin}} />
+              <ItemCard item={{ ...item, source: bottomSheetActivePlugin }} />
             </View>
           ))}
         </View>

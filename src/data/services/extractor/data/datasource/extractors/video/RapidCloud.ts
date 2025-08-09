@@ -90,32 +90,323 @@ class RapidCloud implements Extractor {
 
       try {
         if (encrypted) {
-          const sourcesArray = sources.split('');
+          // If the fetched key is a JSON string like '[[21,7],[...]]', parse it into an array
+          if (
+            typeof decryptKey === 'string' &&
+            decryptKey.trim().startsWith('[')
+          ) {
+            try {
+              decryptKey = JSON.parse(decryptKey);
+            } catch (e) {
+              // keep as string if parse fails
+            }
+          }
+
+          // Use the original response string for index-based extraction to avoid mismatches
+          const responseSourcesStr =
+            typeof res?.data?.sources === 'string'
+              ? res.data.sources
+              : typeof sources === 'string'
+              ? sources
+              : '';
+
+          const originalSources = responseSourcesStr.split('');
+          const maskedSources = originalSources.slice();
 
           let extractedKey = '';
           let currentIndex = 0;
-          for (const index of decryptKey) {
-            const start = index[0] + currentIndex;
-            const end = start + index[1];
-            for (let i = start; i < end; i++) {
-              extractedKey += res.data.sources[i];
-              sourcesArray[i] = '';
+
+          if (Array.isArray(decryptKey)) {
+            for (const pair of decryptKey) {
+              const start = Number(pair[0]) + currentIndex;
+              const len = Number(pair[1]);
+              const end = start + len;
+              for (let i = start; i < end && i < originalSources.length; i++) {
+                extractedKey += originalSources[i];
+                maskedSources[i] = '';
+              }
+              currentIndex += len;
             }
-            currentIndex += index[1];
+          } else {
+            // If decryptKey is not an array, use it directly (fallback to string)
+            extractedKey = String(decryptKey || '');
           }
 
-          decryptKey = extractedKey;
-          sources = sourcesArray.join('');
+          // If extraction didn't produce a key, fall back
+          decryptKey = extractedKey || this.fallbackKey;
+          sources = maskedSources.join('');
 
-          const decrypt = CryptoJS.AES.decrypt(sources, decryptKey);
-          console.log(decrypt.toString(CryptoJS.enc.Utf8));
-          console.log(decrypt.toString(CryptoJS.enc.Utf8));
-          sources = JSON.parse(decrypt.toString(CryptoJS.enc.Utf8));
-          console.log(sources);
+          // Debug logs to help diagnose extraction issues
+          console.log(
+            'RapidCloud raw decryptKey (post-parse):',
+            JSON.stringify(decryptKey),
+          );
+          console.log('RapidCloud extractedKey (raw):', extractedKey);
+          console.log('RapidCloud extractedKey length:', extractedKey.length);
+          console.log(
+            'RapidCloud masked sources (prefix):',
+            sources ? sources.substring(0, 120) : '(empty)',
+          );
+
+          // Prefer using the extractedKey (if present) as the passphrase (OpenSSL-compatible)
+          const passphrase =
+            extractedKey ||
+            (typeof decryptKey === 'string'
+              ? decryptKey
+              : String(decryptKey)) ||
+            this.fallbackKey;
+          console.log(
+            'RapidCloud using passphrase (length):',
+            (passphrase || '').length,
+          );
+
+          let decryptedText = '';
+          let lastErr: any = null;
+
+          // Helper: EVP_BytesToKey-like derivation using MD5 to match OpenSSL's key+iv generation
+          const evpBytesToKey = (
+            secretPass: string,
+            saltWA: CryptoJS.lib.WordArray | null,
+            keyBytes: number,
+            ivBytes: number,
+          ) => {
+            const salt = saltWA || CryptoJS.lib.WordArray.create();
+            let derived = CryptoJS.lib.WordArray.create();
+            let block: CryptoJS.lib.WordArray | undefined = undefined;
+
+            while (derived.sigBytes < keyBytes + ivBytes) {
+              if (block) {
+                block = CryptoJS.MD5(
+                  block
+                    .concat(CryptoJS.enc.Utf8.parse(secretPass))
+                    .concat(salt),
+                );
+              } else {
+                block = CryptoJS.MD5(
+                  CryptoJS.enc.Utf8.parse(secretPass).concat(salt),
+                );
+              }
+              derived = derived.concat(block);
+            }
+
+            const derivedHex = CryptoJS.enc.Hex.stringify(derived);
+            const keyHex = derivedHex.substr(0, keyBytes * 2);
+            const ivHex = derivedHex.substr(keyBytes * 2, ivBytes * 2);
+            return {
+              key: CryptoJS.enc.Hex.parse(keyHex),
+              iv: CryptoJS.enc.Hex.parse(ivHex),
+            };
+          };
+
+          // Helper: parse OpenSSL salted Base64 ("Salted__" + 8 bytes salt + ciphertext)
+          const parseOpenSSLCipher = (b64: string) => {
+            try {
+              const wa = CryptoJS.enc.Base64.parse(b64);
+              const hex = CryptoJS.enc.Hex.stringify(wa);
+              // "Salted__" in hex is 53616c7465645f5f
+              if (hex.startsWith('53616c7465645f5f')) {
+                const saltHex = hex.substr(16, 16); // next 8 bytes (16 hex chars)
+                const cipherHex = hex.substr(32);
+                return {
+                  salt: CryptoJS.enc.Hex.parse(saltHex),
+                  ciphertext: CryptoJS.enc.Hex.parse(cipherHex),
+                };
+              } else {
+                return {salt: null, ciphertext: wa};
+              }
+            } catch (e) {
+              return {salt: null, ciphertext: null};
+            }
+          };
+
+          try {
+            // First attempt: let CryptoJS handle passphrase (works for many OpenSSL salted payloads)
+            console.log(
+              'RapidCloud decrypt attempt: passphrase-string (direct)',
+            );
+            try {
+              decryptedText = CryptoJS.AES.decrypt(
+                sources,
+                passphrase,
+              ).toString(CryptoJS.enc.Utf8);
+            } catch (e) {
+              lastErr = e;
+              decryptedText = '';
+            }
+
+            // If that failed, do explicit OpenSSL-compatible decode + EVP key derivation + AES-CBC decrypt
+            if (
+              !decryptedText &&
+              typeof sources === 'string' &&
+              sources.startsWith('U2FsdGVk')
+            ) {
+              console.log(
+                'RapidCloud decrypt attempt: explicit OpenSSL EVP_BytesToKey + AES-CBC',
+              );
+              const parsed = parseOpenSSLCipher(sources);
+              if (!parsed || !parsed.ciphertext) {
+                lastErr = new Error('Failed to parse OpenSSL ciphertext');
+              } else {
+                // Try AES-256-CBC (32-byte key + 16-byte iv)
+                try {
+                  const kv = evpBytesToKey(passphrase, parsed.salt, 32, 16);
+                  const cipherParams = CryptoJS.lib.CipherParams.create({
+                    ciphertext: parsed.ciphertext,
+                  });
+                  const dec = CryptoJS.AES.decrypt(
+                    cipherParams as any,
+                    kv.key,
+                    {
+                      iv: kv.iv,
+                      mode: CryptoJS.mode.CBC,
+                      padding: CryptoJS.pad.Pkcs7,
+                    },
+                  );
+                  decryptedText = dec.toString(CryptoJS.enc.Utf8);
+                  if (decryptedText) {
+                    console.log(
+                      'RapidCloud decrypt succeeded with AES-256 EVP method',
+                    );
+                  }
+                } catch (e) {
+                  lastErr = e;
+                  decryptedText = '';
+                }
+
+                // If still empty, try AES-128-CBC (16-byte key)
+                if (!decryptedText) {
+                  try {
+                    const kv128 = evpBytesToKey(
+                      passphrase,
+                      parsed.salt,
+                      16,
+                      16,
+                    );
+                    const cipherParams = CryptoJS.lib.CipherParams.create({
+                      ciphertext: parsed.ciphertext,
+                    });
+                    const dec128 = CryptoJS.AES.decrypt(
+                      cipherParams as any,
+                      kv128.key,
+                      {
+                        iv: kv128.iv,
+                        mode: CryptoJS.mode.CBC,
+                        padding: CryptoJS.pad.Pkcs7,
+                      },
+                    );
+                    decryptedText = dec128.toString(CryptoJS.enc.Utf8);
+                    if (decryptedText) {
+                      console.log(
+                        'RapidCloud decrypt succeeded with AES-128 EVP method',
+                      );
+                    }
+                  } catch (e) {
+                    lastErr = e;
+                    decryptedText = '';
+                  }
+                }
+              }
+            }
+
+            // Final sanity-check: ensure JSON-like result
+            if (decryptedText) {
+              const trimmed = decryptedText.trim();
+              if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+                console.log('RapidCloud decrypt produced JSON-like result');
+              } else {
+                console.log(
+                  'RapidCloud decrypt produced non-JSON result:',
+                  decryptedText.substring(0, 120),
+                );
+                decryptedText = '';
+              }
+            }
+          } catch (e) {
+            lastErr = e;
+            decryptedText = '';
+          }
+
+          if (!decryptedText) {
+            // Final fallback: try Python-style approach used in some RapidCloud extractors
+            // - Use the extractedKey as a UTF-8 string, pad/truncate to 16 bytes
+            // - Use a zero IV (16 bytes of zeros)
+            // - Treat `sources` as base64 ciphertext and AES-CBC decrypt with PKCS7 padding
+            try {
+              console.log(
+                'RapidCloud decrypt attempt: python-style key (pad/truncate to 16) + zero IV',
+              );
+
+              const padTo16 = (s: string) => {
+                let keyStr = String(s || '');
+                // pad with null chars to next multiple, then take first 16 chars
+                if (keyStr.length % 16 !== 0) {
+                  const padLen = 16 - (keyStr.length % 16);
+                  keyStr = keyStr + '\0'.repeat(padLen);
+                }
+                keyStr = keyStr.substring(0, 16);
+                return keyStr;
+              };
+
+              const pythonKeyStr = padTo16(
+                extractedKey || decryptKey || this.fallbackKey,
+              );
+              const keyWA = CryptoJS.enc.Utf8.parse(pythonKeyStr);
+              const zeroIv = CryptoJS.enc.Utf8.parse('\0'.repeat(16));
+
+              const cipherParams = CryptoJS.lib.CipherParams.create({
+                ciphertext: CryptoJS.enc.Base64.parse(sources),
+              });
+
+              const dec = CryptoJS.AES.decrypt(cipherParams as any, keyWA, {
+                iv: zeroIv,
+                mode: CryptoJS.mode.CBC,
+                padding: CryptoJS.pad.Pkcs7,
+              });
+
+              const candidate = dec.toString(CryptoJS.enc.Utf8);
+              if (candidate) {
+                const trimmed = candidate.trim();
+                if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+                  console.log(
+                    'RapidCloud decrypt produced JSON-like result with python-style fallback',
+                  );
+                  decryptedText = candidate;
+                } else {
+                  console.log(
+                    'RapidCloud python-style decrypt produced non-JSON result:',
+                    candidate.substring(0, 120),
+                  );
+                }
+              }
+            } catch (e) {
+              console.log('RapidCloud python-style decrypt error:', e);
+            }
+          }
+
+          if (!decryptedText) {
+            throw new Error(
+              `Cannot decrypt sources. No valid UTF-8 JSON produced. Last error: ${lastErr}`,
+            );
+          }
+
+          try {
+            sources = JSON.parse(decryptedText);
+          } catch (e) {
+            throw new Error(
+              'Decryption succeeded but JSON.parse failed on result.',
+            );
+          }
         }
       } catch (err) {
-        throw new Error('Cannot decrypt sources. Perhaps the key is invalid.');
+        console.log('RapidCloud decrypt error:', err);
+        // Rethrow so we don't continue with an un-decrypted `sources` (which causes downstream crashes)
+        throw new Error(
+          'Cannot decrypt RapidCloud sources: ' +
+            ((err as Error)?.message || String(err)),
+        );
       }
+
+      console.log('sources', sources);
 
       // Map sources to RawVideo format
       const sourcesData =

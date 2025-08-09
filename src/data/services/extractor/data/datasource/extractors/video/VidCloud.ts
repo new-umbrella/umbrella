@@ -102,7 +102,12 @@ class VidCloud implements Extractor {
 
 class VidCloudInfo implements ExtractorInfo {
   id: string = 'vidcloud';
-  patterns: RegExp[] = [/vidcloud\./, /vidsrc\.stream/];
+  patterns: RegExp[] = [
+    /vidcloud\./,
+    /vidsrc\.stream/,
+    /cloudvidz\./,
+    /cdnstreame\./,
+  ];
   extractorMediaType: MediaType = MediaType.ExtractorVideo;
   extractors: Extractor[] = [new VidCloud()];
 }

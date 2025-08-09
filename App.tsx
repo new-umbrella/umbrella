@@ -76,9 +76,9 @@ export default function App() {
     //   console.log(result);
     // };
     // extract();
-    // nodejs.channel.addListener('message', message => {
-    //   Alert.alert('From NodeJS', message);
-    // });
+    nodejs.channel.addListener('message', message => {
+      Alert.alert('From NodeJS', message);
+    });
   }, []);
 
   const colorScheme = useColorScheme();
@@ -196,8 +196,9 @@ export default function App() {
     useExtractorServiceStore(state => state);
 
   useEffect(() => {
+    console.log('bottomSheetVisible', extractorBottomSheetVisible);
     if (extractorBottomSheetVisible) {
-      extractorBottomSheetRef.current?.expand();
+      extractorBottomSheetRef.current?.snapToIndex(0);
     }
   }, [extractorBottomSheetVisible]);
 
@@ -209,7 +210,7 @@ export default function App() {
 
   useEffect(() => {
     if (searchBottomSheetVisible) {
-      searchBottomSheetRef.current?.expand();
+      searchBottomSheetRef.current?.snapToIndex(0);
     }
   }, [searchBottomSheetVisible]);
 
@@ -221,7 +222,7 @@ export default function App() {
 
   useEffect(() => {
     if (favoriteBottomSheetVisible) {
-      favoriteBottomSheetRef.current?.expand();
+      favoriteBottomSheetRef.current?.snapToIndex(0);
     }
   }, [favoriteBottomSheetVisible]);
 
@@ -283,11 +284,9 @@ export default function App() {
                   bottomSheetRef={extractorBottomSheetRef}
                 />
               )}
-
               {searchBottomSheetVisible && (
                 <PaginationBottomSheet bottomSheetRef={searchBottomSheetRef} />
               )}
-
               {favoriteBottomSheetVisible && (
                 <FavoriteBottomSheet bottomSheetRef={favoriteBottomSheetRef} />
               )}

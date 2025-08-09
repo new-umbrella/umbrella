@@ -66,7 +66,12 @@ const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
   // When screen is locked, only show unlock button
   if (isScreenLocked) {
     return (
-      <View style={[styles.container, styles.lockedContainer, styles.transparentContainer]}>
+      <View
+        style={[
+          styles.container,
+          styles.lockedContainer,
+          styles.transparentContainer,
+        ]}>
         <TouchableOpacity
           style={styles.unlockButton}
           onPress={onScreenLockToggle}>
@@ -86,11 +91,11 @@ const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
       onTouchStart={onControlsInteraction}>
       {/* Top Controls */}
       <View style={styles.topControls}>
+        <TouchableOpacity onPress={onClose} style={styles.topButton}>
+          <Icon name="arrow-back" size={24} color="white" />
+        </TouchableOpacity>
         <TouchableOpacity onPress={onMirror} style={styles.topButton}>
           <Icon name="cast" size={24} color="white" />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={onClose} style={styles.topButton}>
-          <Icon name="close" size={24} color="white" />
         </TouchableOpacity>
       </View>
 
@@ -122,22 +127,23 @@ const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
       <View style={styles.bottomControls}>
         <View style={styles.progressContainer}>
           <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
-          <View style={{...styles.progressBarContainer, marginBottom: isFullscreen ? 16 : 0}}>
+          <View
+            style={{
+              ...styles.progressBarContainer,
+              marginBottom: isFullscreen ? 16 : 0,
+            }}>
             {/* Background track */}
             <View style={styles.progressTrack} />
             {/* Buffered progress */}
-            <View 
+            <View
               style={[
-                styles.bufferedProgress, 
-                { width: `${bufferedProgress * 100}%` }
-              ]} 
+                styles.bufferedProgress,
+                {width: `${bufferedProgress * 100}%`},
+              ]}
             />
             {/* Current progress */}
-            <View 
-              style={[
-                styles.currentProgress, 
-                { width: `${progress * 100}%` }
-              ]} 
+            <View
+              style={[styles.currentProgress, {width: `${progress * 100}%`}]}
             />
             {/* Interactive overlay for seeking */}
             <Slider
@@ -158,7 +164,7 @@ const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
-            paddingBottom: isFullscreen ? 20 : 0,
+            paddingBottom: 20, //isFullscreen ? 20 : 0,
           }}>
           <TouchableOpacity style={styles.bottomButton}>
             {/* <Icon name="volume-up" size={24} color="white" /> */}
@@ -166,21 +172,25 @@ const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
           </TouchableOpacity>
 
           <View style={styles.bottomButtons}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.bottomButton}
               onPress={onPlaybackSpeedChange}>
-              <Icon name="speed" size={24} color={playbackRate !== 1.0 ? '#E50914' : 'white'} />
+              <Icon
+                name="speed"
+                size={24}
+                color={playbackRate !== 1.0 ? '#E50914' : 'white'}
+              />
               {/* {playbackRate !== 1.0 && (
                 <Text style={styles.speedText}>{playbackRate}x</Text>
               )} */}
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.bottomButton}
               onPress={onScreenLockToggle}>
-              <Icon 
-                name={isScreenLocked ? "lock" : "lock-open"} 
-                size={24} 
-                color={isScreenLocked ? '#E50914' : 'white'} 
+              <Icon
+                name={isScreenLocked ? 'lock' : 'lock-open'}
+                size={24}
+                color={isScreenLocked ? '#E50914' : 'white'}
               />
             </TouchableOpacity>
             {subtitles.length > 0 && (

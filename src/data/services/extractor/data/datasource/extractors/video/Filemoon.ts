@@ -96,7 +96,7 @@ class Filemoon implements Extractor {
 
 class FilemoonInfo implements ExtractorInfo {
   id: string = 'filemoon';
-  patterns: RegExp[] = [/filemoon\./];
+  patterns: RegExp[] = [/filemoon\./, /filemoon\.to/, /2glho\.org/];
   extractorMediaType: MediaType = MediaType.ExtractorVideo;
   extractors: Extractor[] = [new Filemoon()];
 }

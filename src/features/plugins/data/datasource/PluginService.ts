@@ -230,7 +230,7 @@ export const PluginService = {
         case 'getItemDetails':
           return value as Status<DetailedItem>;
         case 'getItemMedia':
-          console.log('value', value);
+          // console.log('value', value);
           return value as Status<
             (RawAudio | ExtractorAudio | RawVideo | ExtractorVideo)[]
           >;

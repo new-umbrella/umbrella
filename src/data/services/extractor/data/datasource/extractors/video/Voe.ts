@@ -3,6 +3,7 @@ import {type CheerioAPI, load} from 'cheerio';
 // Original code by 2004durgesh: https://github.com/2004durgesh
 // Credit for the original code: https://github.com/2004durgesh/react-native-consumet
 // Original Code : https://github.com/2004durgesh/react-native-consumet/blob/main/src/extractors/voe.ts
+// Updated/adapted from: https://github.com/yogesh-hacker/MediaVanced/blob/main/sites/voe.py
 
 import ExtractorAudio from '../../../../../../../features/plugins/data/model/media/ExtractorAudio';
 import ExtractorVideo from '../../../../../../../features/plugins/data/model/media/ExtractorVideo';
@@ -95,7 +96,12 @@ class Voe implements Extractor {
 
 class VoeInfo implements ExtractorInfo {
   id: string = 'voe';
-  patterns: RegExp[] = [/voe\./];
+  patterns: RegExp[] = [
+    /voe\./,
+    /voe\.sx/,
+    /kellywhatcould\.com/,
+    /jilliandescribecompany\.com/,
+  ];
   extractorMediaType: MediaType = MediaType.ExtractorVideo;
   extractors: Extractor[] = [new Voe()];
 }

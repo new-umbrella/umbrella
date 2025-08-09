@@ -1,6 +1,7 @@
 // Original code by 2004durgesh: https://github.com/2004durgesh
 // Credit for the original code: https://github.com/2004durgesh/react-native-consumet
 // Original Code : https://github.com/2004durgesh/react-native-consumet/blob/main/src/extractors/mixdrop.ts
+// Updated/adapted from: https://github.com/yogesh-hacker/MediaVanced/blob/main/sites/mixdrop.py
 
 import ExtractorAudio from '../../../../../../../features/plugins/data/model/media/ExtractorAudio';
 import ExtractorVideo from '../../../../../../../features/plugins/data/model/media/ExtractorVideo';
@@ -59,7 +60,7 @@ class MixDrop implements Extractor {
 
 class MixDropInfo implements ExtractorInfo {
   id: string = 'mixdrop';
-  patterns: RegExp[] = [/mixdrop\./];
+  patterns: RegExp[] = [/mixdrop\./, /mixdrop\.sb/, /mixdrop\.to/];
   extractorMediaType: MediaType = MediaType.ExtractorVideo;
   extractors: Extractor[] = [new MixDrop()];
 }

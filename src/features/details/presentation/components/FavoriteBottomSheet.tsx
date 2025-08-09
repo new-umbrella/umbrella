@@ -1,13 +1,13 @@
-import {View, Text, StyleSheet, Dimensions, StatusBar} from 'react-native';
-import React, {useEffect, useRef, useState} from 'react';
-import {GestureHandlerRootView, ScrollView} from 'react-native-gesture-handler';
-import {List, useTheme} from 'react-native-paper';
+import { View, Text, StyleSheet, Dimensions, StatusBar } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { GestureHandlerRootView, ScrollView } from 'react-native-gesture-handler';
+import { List, useTheme } from 'react-native-paper';
 import BottomSheet, {
   BottomSheetScrollView,
   BottomSheetView,
 } from '@gorhom/bottom-sheet';
-import {BottomSheetMethods} from '@gorhom/bottom-sheet/lib/typescript/types';
-import {useFavoriteStore} from '../state/useFavoriteStore';
+import { BottomSheetMethods } from '@gorhom/bottom-sheet/lib/typescript/types';
+import { useFavoriteStore } from '../state/useFavoriteStore';
 import {
   Favorite,
   FavoriteCategoryType,
@@ -20,7 +20,7 @@ const FavoriteBottomSheet = ({
 }: {
   bottomSheetRef: React.RefObject<BottomSheetMethods>;
 }) => {
-  const {item, addFavorite, setVisible, setIsFavorited} = useFavoriteStore(
+  const { item, addFavorite, setVisible, setIsFavorited, visible } = useFavoriteStore(
     state => state,
   );
 
@@ -31,9 +31,9 @@ const FavoriteBottomSheet = ({
   return (
     <BottomSheet
       ref={bottomSheetRef}
-      index={0}
+      index={visible ? 0 : -1}
       snapPoints={['50%']}
-      handleStyle={{backgroundColor: theme.colors.surface}}
+      handleStyle={{ backgroundColor: theme.colors.surface }}
       enablePanDownToClose={true}
       enableDynamicSizing={true}
       onClose={() => {

@@ -1,5 +1,5 @@
 import {View, StyleSheet, Alert, Linking, Image} from 'react-native';
-import React, {useEffect, useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useState, useCallback, useRef} from 'react';
 import {ScrollView} from 'react-native-gesture-handler';
 import {
   ActivityIndicator,
@@ -42,6 +42,7 @@ const ExtractorSourcesBottomSheet = ({
     mediaIndex,
     extracting,
     setExtracting,
+    bottomSheetVisible,
     setBottomSheetVisible: setVisible,
     rawSources,
     setRawSources,
@@ -49,9 +50,18 @@ const ExtractorSourcesBottomSheet = ({
     setSources,
   } = useExtractorServiceStore(state => state);
 
-  const extractorViewModel = new ExtractorViewModel();
+  // useEffect(() => {
+  //   if (detailedItem && detailedItem.media && detailedItem.media[mediaIndex]) {
+  //     const mediaItem = detailedItem.media[mediaIndex];
+  //     // Create a raw source from the media item
+  //     const rawSources =
+  //     setRawSources([rawSource]);
+  //   }
+  // }, [detailedItem, mediaIndex]);
 
-  const [noSources, setNoSources] = useState<boolean>(false);
+  const extractorViewModel = useRef(new ExtractorViewModel()).current;
+
+  // const [noSources, setNoSources] = useState<boolean>(false);
   // State for player choice dialog
   const [playerDialogVisible, setPlayerDialogVisible] =
     useState<boolean>(false);
@@ -59,73 +69,97 @@ const ExtractorSourcesBottomSheet = ({
     RawAudio | RawVideo | null
   >(null);
 
-  // console.log(mediaIndex);
-
-  // console.log(rawSources);
+  // Bottom sheet opening/closing is now handled by App.tsx
+  // useEffect(() => {
+  //   console.log('bottomSheetVisible', bottomSheetVisible);
+  //   if (bottomSheetVisible) {
+  //     console.log('bottomSheetVisible', bottomSheetVisible);
+  //     console.log('opening bottom sheet');
+  //     bottomSheetRef.current?.snapToIndex(0);
+  //   } else {
+  //     console.log('bottomSheetVisible', bottomSheetVisible);
+  //     console.log('closing bottom sheet');
+  //     bottomSheetRef.current?.close();
+  //   }
+  // }, [bottomSheetVisible]);
 
   useEffect(() => {
     const doExtraction = async () => {
-      var sourcesToBeExtracted: (
-        | ExtractorAudio
-        | RawAudio
-        | ExtractorVideo
-        | RawVideo
-      )[] = [];
-      console.log('rawSources', rawSources);
-      rawSources.map(source => {
+      // console.log('rawSources', rawSources);
+      if (rawSources.length === 0) return;
+
+      setExtracting(true);
+
+      const sourcesToBeExtracted: (ExtractorAudio | ExtractorVideo)[] = [];
+      const readySources: (RawAudio | RawVideo)[] = [];
+
+      rawSources.forEach(source => {
         if (
           source.type === MediaType.ExtractorAudio ||
           source.type === MediaType.ExtractorVideo
         ) {
-          sourcesToBeExtracted.push(source);
+          sourcesToBeExtracted.push(source as ExtractorAudio | ExtractorVideo);
+        } else {
+          readySources.push(source as RawAudio | RawVideo);
         }
       });
-      setSources(
-        rawSources.filter(source => !sourcesToBeExtracted.includes(source)) as (
-          | RawAudio
-          | RawVideo
-        )[],
-      );
-      (rawSources as (ExtractorAudio | ExtractorVideo)[]).forEach(
-        async (source, index: number) => {
-          await extractorViewModel.extract(source).then(result => {
-            result.map((extractedSource: RawAudio | RawVideo) => {
-              setSources([...sources, extractedSource]);
-            });
-          });
-        },
-      );
-    };
 
-    const startExtraction = async () => {
-      if (rawSources.length > 0) {
-        setExtracting(true);
-        await doExtraction().then(() => {
-          setExtracting(false);
-        });
+      // Set ready sources immediately
+      setSources(readySources);
+
+      // Extract sources that need extraction
+      if (sourcesToBeExtracted.length > 0) {
+        try {
+          // const extractionPromises = sourcesToBeExtracted.map(source =>
+          //   extractorViewModel.extract(source),
+          // );
+
+          // const results = await Promise.all(extractionPromises);
+          // console.log('results', results);
+          // const allExtractedSources = results.flat();
+
+          // Update sources with all extracted results at once
+          // setSources([...sources, ...allExtractedSources]);
+
+          for (const source of sourcesToBeExtracted) {
+            try {
+              const extractedSources = await extractorViewModel.extract(source);
+              setSources([...sources, ...extractedSources]);
+            } catch (error) {
+              console.error('Extraction error:', error);
+              continue;
+            }
+          }
+        } catch (error) {
+          console.error('Extraction error:', error);
+        }
       }
+
+      setExtracting(false);
     };
 
-    if (!extracting) {
-      startExtraction();
+    if (!extracting && rawSources.length > 0) {
+      doExtraction();
     }
-  }, [rawSources.length]);
+  }, []);
 
-  useEffect(() => {
-    if (sources.length < 0 && !extracting) {
-      setNoSources(true);
-    }
-  }, [extracting, sources.length]);
+  // useEffect(() => {
+  //   if (sources.length < 0 && !extracting) {
+  //     setNoSources(true);
+  //   }
+  // }, [extracting, sources.length]);
 
-  const openMedia = async (
-    media: RawAudio | RawVideo,
-    item: DetailedItem,
-    index: number = 0,
-    mediaPlayerToOpen: 'mxplayer' | 'webvideocast' = 'webvideocast',
-  ): Promise<void> => {
-    if (mediaPlayerToOpen === 'mxplayer') {
-      await SendIntentAndroid.isAppInstalled('com.mxtech.videoplayer.ad').then(
-        async isInstalled => {
+  const openMedia = useCallback(
+    async (
+      media: RawAudio | RawVideo,
+      item: DetailedItem,
+      index: number = 0,
+      mediaPlayerToOpen: 'mxplayer' | 'webvideocast' = 'webvideocast',
+    ): Promise<void> => {
+      if (mediaPlayerToOpen === 'mxplayer') {
+        await SendIntentAndroid.isAppInstalled(
+          'com.mxtech.videoplayer.ad',
+        ).then(async isInstalled => {
           if (isInstalled) {
             await SendIntentAndroid.openAppWithData(
               'com.mxtech.videoplayer.ad',
@@ -157,89 +191,62 @@ const ExtractorSourcesBottomSheet = ({
               ],
             );
           }
-        },
-      );
-    } else {
-      await SendIntentAndroid.isAppInstalled(
-        'com.instantbits.cast.webvideo',
-      ).then(async isInstalled => {
-        if (isInstalled) {
-          const options: WebVideoCasterOptions = {
-            videoURL: media.url,
-            title: item.name + ' - ' + item.media[index].name,
-            posterURL: media.iconUrl,
-            headers: media.headers,
-            subtitles: media.subtitles,
-            hideVideoAddress: false,
-            position: 0, // Start at 30 seconds
-            // userAgent: media.headers?.['User-Agent'] || 'Umbrella/1.0',
-            filename:
-              item.name +
-              ' - ' +
-              item.media[index].name +
-              media.url.split('/').pop(),
-            suppressErrorMessage: false,
-            mimeType: detectVideoMimeType(media.url),
-          };
-          // RNWebVideoCaster.playVideo(options);
-          // RNWebVideoCaster.isAppInstalled((isInstalled: boolean) => {
-          //   console.log('IS INSTALLED', isInstalled);
-          // });
-          //   await SendIntentAndroid.openAppWithData(
-          //     'com.instantbits.cast.webvideo',
-          //     media.url,
-          //     'video/*',
-          //     {
-          //       title: item.name + ' - ' + item.media[index].name,
-          //       headers: JSON.stringify(media.headers),
-          //     },
-          //   );
-          // try {
-          //   await Linking.openURL(
-          //     `wvc-x-callback://open?url=${media.url}&headers=Referer:$20https://s3taku.one/`,
-          //     // ${
-          //     //   media.headers
-          //     //     ? Object.entries(media.headers)
-          //     //         .map(([key, value]) => `&${key}:%20${value}`)
-          //     //         .join('')
-          //     //     : ''
-          //     // }`,
-          //   );
-          // } catch (error) {
-          //   console.log('ERROR', error);
-          // }
-        } else {
-          Alert.alert(
-            'Web Video Cast is not installed, would you like to install it?',
-            'You can always install it later from the Play Store',
-            [
-              {
-                text: 'Cancel',
-                onPress: () => {},
-                style: 'cancel',
-              },
-              {
-                text: 'Install',
-                onPress: async () => {
-                  await Linking.openURL(
-                    'market://details?id=com.instantbits.cast.webvideo',
-                  );
+        });
+      } else {
+        await SendIntentAndroid.isAppInstalled(
+          'com.instantbits.cast.webvideo',
+        ).then(async isInstalled => {
+          if (isInstalled) {
+            const options: WebVideoCasterOptions = {
+              videoURL: media.url,
+              title: item.name + ' - ' + item.media[index].name,
+              posterURL: media.iconUrl,
+              headers: media.headers,
+              subtitles: media.subtitles,
+              hideVideoAddress: false,
+              position: 0,
+              filename:
+                item.name +
+                ' - ' +
+                item.media[index].name +
+                media.url.split('/').pop(),
+              suppressErrorMessage: false,
+              mimeType: detectVideoMimeType(media.url),
+            };
+          } else {
+            Alert.alert(
+              'Web Video Cast is not installed, would you like to install it?',
+              'You can always install it later from the Play Store',
+              [
+                {
+                  text: 'Cancel',
+                  onPress: () => {},
+                  style: 'cancel',
                 },
-              },
-            ],
-          );
-        }
-      });
-    }
-  };
+                {
+                  text: 'Install',
+                  onPress: async () => {
+                    await Linking.openURL(
+                      'market://details?id=com.instantbits.cast.webvideo',
+                    );
+                  },
+                },
+              ],
+            );
+          }
+        });
+      }
+    },
+    [],
+  );
 
-  console.log('SOURCES', sources);
+  // console.log("rawSources", rawSources)
 
   return (
     <>
       <BottomSheet
         ref={bottomSheetRef}
-        index={0}
+        index={bottomSheetVisible ? 0 : -1}
         snapPoints={useMemo(() => ['50%'], [])}
         handleStyle={{backgroundColor: theme.colors.surface}}
         enablePanDownToClose={true}
@@ -250,18 +257,15 @@ const ExtractorSourcesBottomSheet = ({
         onClose={() => {
           setVisible(false);
           setExtracting(false);
-          setNoSources(false);
+          // setNoSources(false);
           setRawSources([]);
           setSources([]);
           setPlayerDialogVisible(false);
           setSelectedMedia(null);
         }}>
-        <BottomSheetView
-          style={{
-            ...styles.bottomSheetOptions,
-          }}>
+        <BottomSheetView style={styles.bottomSheetOptions}>
           {sources.length < 1 ? (
-            noSources ? (
+            !extracting ? (
               <Text>No Sources Found</Text>
             ) : (
               <ActivityIndicator size="large" />
@@ -290,8 +294,8 @@ const ExtractorSourcesBottomSheet = ({
                     // Navigate to MediaNavigator with the selected source
                     const mediaToView: MediaToView = {
                       type: (source.type === MediaType.RawVideo
-                        ? 'video'
-                        : 'audio') as MediaToView['type'],
+                        ? 'Video'
+                        : 'Audio') as MediaToView['type'],
                       media: [source],
                       details: detailedItem,
                       index: 0,

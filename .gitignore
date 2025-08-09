@@ -76,3 +76,5 @@ yarn-error.log
 ref/
 .kiro/
 logs/
+
+tmp/

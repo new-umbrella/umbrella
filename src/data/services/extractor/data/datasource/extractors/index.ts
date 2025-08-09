@@ -22,6 +22,27 @@ import VidMolyInfo from './video/VidMoly';
 import VizCloudInfo from './video/VizCloud';
 import VoeInfo from './video/Voe';
 
+// Newly added extractors (converted from Python to Typescript from https://github.com/yogesh-hacker/MediaVanced)
+import VcdnlareInfo from './video/Vcdnlare';
+import MegacloudInfo from './video/Megacloud';
+import MultiQualityInfo from './video/MultiQuality';
+import NoodleMagazineInfo from './video/NoodleMagazine';
+import PhotojinInfo from './video/Photojin';
+import PixFusionInfo from './video/PixFusion';
+import PornhatInfo from './video/Pornhat';
+import PornhubInfo from './video/Pornhub';
+import RubystreamInfo from './video/Rubystream';
+import SaicordInfo from './video/Saicord';
+import SendInfo from './video/Send';
+import SpeedoStreamInfo from './video/SpeedoStream';
+import StreamBucketInfo from './video/StreamBucket';
+import StreamingCommunityzInfo from './video/StreamingCommunityz';
+import StreamOUploadInfo from './video/StreamOUpload';
+import StreamP2PInfo from './video/StreamP2P';
+import UperboxInfo from './video/Uperbox';
+import VidSrcInfo from './video/VidSrc';
+import UpVidInfo from './video/UpVid';
+
 const Extractors = {
   ExtractorVideo: [
     new VidHideExtractorInfo(),
@@ -46,6 +67,27 @@ const Extractors = {
     new VidMolyInfo(),
     new VizCloudInfo(),
     new VoeInfo(),
+
+    // Converted from ref/MediaVanced-main/sites
+    new VcdnlareInfo(),
+    new MegacloudInfo(),
+    new MultiQualityInfo(),
+    new NoodleMagazineInfo(),
+    new PhotojinInfo(),
+    new PixFusionInfo(),
+    new PornhatInfo(),
+    new PornhubInfo(),
+    new RubystreamInfo(),
+    new SaicordInfo(),
+    new SendInfo(),
+    new SpeedoStreamInfo(),
+    new StreamBucketInfo(),
+    new StreamingCommunityzInfo(),
+    new StreamOUploadInfo(),
+    new StreamP2PInfo(),
+    new UperboxInfo(),
+    new VidSrcInfo(),
+    new UpVidInfo(),
   ] as ExtractorInfo[],
   Other: [],
 };
