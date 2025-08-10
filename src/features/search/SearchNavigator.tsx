@@ -107,11 +107,6 @@ const SearchNavigator = () => {
   return (
     <View
       style={[styles.container, {backgroundColor: theme.colors.background}]}>
-      <StatusBar
-        backgroundColor={theme.colors.background}
-        barStyle={theme.dark ? 'light-content' : 'dark-content'}
-      />
-
       {/* Header with search bar */}
       {/* <Appbar.Header style={styles.header}> */}
       <View style={styles.header}>

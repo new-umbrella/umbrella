@@ -7,6 +7,7 @@ import com.facebook.react.defaults.DefaultReactActivityDelegate
 
 import android.os.Bundle
 import org.devio.rn.splashscreen.SplashScreen;
+import androidx.core.view.WindowCompat
 
 class MainActivity : ReactActivity() {
 
@@ -24,6 +25,8 @@ class MainActivity : ReactActivity() {
       DefaultReactActivityDelegate(this, mainComponentName, fabricEnabled)
 
   override fun onCreate(savedInstanceState: Bundle?) {
+    // Allow the app to draw behind system bars (status bar / navigation bar / display cutout)
+    WindowCompat.setDecorFitsSystemWindows(window, false)
     SplashScreen.show(this)
     super.onCreate(null)
   }

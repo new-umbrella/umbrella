@@ -129,11 +129,6 @@ const LibraryNavigator = () => {
   return (
     <View
       style={[styles.container, {backgroundColor: theme.colors.background}]}>
-      <StatusBar
-        backgroundColor={theme.colors.background}
-        barStyle={theme.dark ? 'light-content' : 'dark-content'}
-      />
-
       {/* Header */}
       <View style={styles.header}>
         <Text variant="titleLarge" style={{color: theme.colors.onBackground}}>

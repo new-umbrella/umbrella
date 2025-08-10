@@ -225,7 +225,7 @@ export const PluginService = {
           return value as Status<Category>;
         case 'getCategory':
           return value as Status<Category>;
-        case 'getCategories':
+        case 'getHomeCategories':
           return value as Status<Category[]>;
         case 'getItemDetails':
           return value as Status<DetailedItem>;

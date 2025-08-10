@@ -36,11 +36,6 @@ const SettingsNavigator = () => {
   return (
     <View
       style={[styles.container, {backgroundColor: theme.colors.background}]}>
-      <StatusBar
-        backgroundColor={theme.colors.background}
-        barStyle={theme.dark ? 'light-content' : 'dark-content'}
-      />
-
       <Text variant="titleLarge" style={{margin: 16}}>
         Settings
       </Text>

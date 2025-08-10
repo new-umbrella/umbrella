@@ -9,7 +9,7 @@ export const DarkTheme = {
     primary: '#8c56f0',
     secondary: '#4060ff',
     background: 'rgba(0, 0, 0, 1)',
-    surface: 'rgba(10, 10, 10, 1)',
+    surface: 'rgba(15, 15, 15, 1)',
     text: '#fff',
     disabled: 'rgba(225, 225, 225, 0.80)',
     placeholder: 'rgba(255, 255, 255, 0.54)',

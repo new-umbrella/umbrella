@@ -15,6 +15,7 @@ import {
   TouchableOpacity,
   Dimensions,
   StatusBar,
+  useColorScheme,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {useTheme, Icon, Menu} from 'react-native-paper';
@@ -32,6 +33,7 @@ import Item from '../plugins/data/model/item/Item';
 import {useFavoriteStore} from './presentation/state/useFavoriteStore';
 import {useExtractorServiceStore} from '../../data/services/extractor/presentation/state/ExtractorServiceStore';
 import BottomSheet from '@gorhom/bottom-sheet';
+import SystemNavigationBar from 'react-native-system-navigation-bar';
 
 interface RouteParams {
   itemId: string;
@@ -231,6 +233,12 @@ const DetailsNavigator = () => {
   const handleDownloadPress = (episode: any) => {
     // download episode
   };
+
+  useEffect(() => {
+    SystemNavigationBar.setNavigationColor(theme.colors.background);
+    StatusBar.setBarStyle('light-content');
+    StatusBar.setBackgroundColor(theme.colors.background);
+  }, []);
 
   if (loading) {
     return (

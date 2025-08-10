@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Dimensions,
   FlatList,
-  StatusBar,
 } from 'react-native';
 import {Appbar, Menu, Text, useTheme, Icon} from 'react-native-paper';
 import Video, {VideoRef} from 'react-native-video';
@@ -19,6 +18,7 @@ import ItemMedia from '../../../plugins/data/model/item/ItemMedia';
 import Orientation, {OrientationType} from 'react-native-orientation-locker';
 import SystemNavigationBar from 'react-native-system-navigation-bar';
 import {useNavigation} from '@react-navigation/native';
+import {SystemBars} from 'react-native-edge-to-edge';
 
 interface VideoPlayerProps {
   paused?: boolean;
@@ -270,8 +270,10 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     // return () => Orientation.removeOrientationListener(subscription as any);
     // return () => subscription.remove();
     const enableFullscreen = async () => {
-      Orientation.lockToLandscape();
-      StatusBar.setHidden(true);
+      // Orientation.lockToLandscape();
+      // Use SystemBars to hide the status bar when entering fullscreen to avoid
+      // conflicts with react-native-edge-to-edge.
+      SystemBars.setHidden({statusBar: true, navigationBar: true});
       await SystemNavigationBar.navigationHide();
       setIsFullscreen(true);
       // Orientation.lockToLandscapeLeft();
@@ -279,8 +281,9 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
     enableFullscreen();
     return () => {
-      Orientation.unlockAllOrientations();
-      StatusBar.setHidden(false);
+      // Orientation.unlockAllOrientations();
+      // Restore system bars visibility when exiting
+      SystemBars.setHidden({statusBar: false, navigationBar: false});
       SystemNavigationBar.navigationShow();
       setIsFullscreen(false);
       // Orientation.unlockAllOrientations();
@@ -330,19 +333,25 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   // if (isFullscreen) {
   return (
     <View style={[styles.container, styles.fullscreenContainer]}>
-      <StatusBar hidden={true} />
+      <SystemBars
+        // Hide status bar when fullscreen, always hide navigation bar for the
+        // video player experience. Use the stack-based API so other components
+        // don't unexpectedly override system bars.
+        hidden={{statusBar: isFullscreen, navigationBar: true}}
+        style="light"
+      />
       {/* Fullscreen Video Player Only */}
       <View
         style={{
           ...styles.videoContainer,
-          height: Dimensions.get('screen').height,
-          width: Dimensions.get('screen').width,
+          height: '100%',
+          width: '100%',
           aspectRatio: undefined,
         }}>
         <TouchableOpacity
           style={{
-            width: Dimensions.get('screen').width,
-            height: Dimensions.get('screen').height,
+            height: '100%',
+            width: '100%',
             position: 'absolute',
             zIndex: 999,
           }}
@@ -361,12 +370,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
             onReadyForDisplay={() => setIsBuffering(false)}
             onProgress={handleProgress}
             onLoad={handleLoad}
-            style={{
-              width: Dimensions.get('screen').width,
-              height: Dimensions.get('screen').height,
-              aspectRatio: undefined,
-            }}
-            resizeMode="contain"
+            style={StyleSheet.absoluteFillObject}
+            resizeMode="cover"
           />
         </TouchableOpacity>
 

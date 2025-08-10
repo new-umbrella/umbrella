@@ -6,7 +6,14 @@ import {
   View,
 } from 'react-native';
 import React, {useEffect} from 'react';
-import {Appbar, Button, TextInput, useTheme} from 'react-native-paper';
+import {
+  Appbar,
+  Button,
+  IconButton,
+  Text,
+  TextInput,
+  useTheme,
+} from 'react-native-paper';
 import {SvgUri} from 'react-native-svg';
 import {Profile} from '../../domain/entities/Profile';
 import uuid from 'react-native-uuid';
@@ -70,10 +77,18 @@ const CreateProfileView = ({
 
   return (
     <View style={styles.container}>
-      <Appbar.Header>
+      {/* <Appbar.Header>
         <Appbar.BackAction onPress={() => setShowCreateProfileScreen(false)} />
         <Appbar.Content title="Create Profile" />
-      </Appbar.Header>
+      </Appbar.Header> */}
+      <View style={{flexDirection: 'row', alignItems: 'center'}}>
+        <IconButton
+          icon="arrow-left"
+          size={30}
+          onPress={() => setShowCreateProfileScreen(false)}
+        />
+        <Text variant="titleLarge">Create Profile</Text>
+      </View>
       <View
         style={{
           flex: 1,

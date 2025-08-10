@@ -45,11 +45,7 @@ const HomeHero: React.FC<HomeHeroProps> = ({
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={[
-          'rgba(0, 0, 0, 0.0)',
-          'rgba(0, 0, 0, 0.25)',
-          'rgba(0, 0, 0, 0.85)',
-        ]}
+        colors={['rgba(0, 0, 0, 0.0)', 'rgba(0, 0, 0, 0.5)']}
         start={{x: 0, y: 1}}
         end={{x: 0, y: 0}}
         style={styles.containerGradient}
@@ -59,11 +55,7 @@ const HomeHero: React.FC<HomeHeroProps> = ({
         style={styles.image}
         resizeMode="cover">
         <LinearGradient
-          colors={[
-            'rgba(0, 0, 0, 0.0)',
-            'rgba(0, 0, 0, 0.25)',
-            'rgba(0, 0, 0, 0.85)',
-          ]}
+          colors={['rgba(0, 0, 0, 0.0)', 'rgba(0, 0, 0, 1)']}
           start={{x: 0, y: 0}}
           end={{x: 0, y: 1}}
           style={styles.gradientOverlay}
@@ -125,20 +117,21 @@ const HomeHero: React.FC<HomeHeroProps> = ({
 
             <Button
               mode="outlined"
-              onPress={onAddToListPress}
+              // onPress={onAddToListPress}
+              onPress={onMoreInfoPress}
               style={[styles.button, styles.secondaryButton]}
               labelStyle={styles.secondaryButtonLabel}
               icon={({size, color}) => (
-                <MaterialIcons name="add" size={size} color={color} />
+                <MaterialIcons name="info" size={size} color={color} />
               )}>
-              My List
+              Info
             </Button>
 
-            <TouchableOpacity
+            {/* <TouchableOpacity
               style={styles.infoButton}
               onPress={onMoreInfoPress}>
               <MaterialIcons name="info-outline" size={24} color="#fff" />
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
         </View>
       </ImageBackground>

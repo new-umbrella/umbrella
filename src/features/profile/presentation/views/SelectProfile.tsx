@@ -48,9 +48,14 @@ const SelectProfile = ({
 
   return (
     <View style={styles.container}>
-      <Appbar.Header>
+      {/* <Appbar.Header>
         <Appbar.Content title="Select Profile" />
-      </Appbar.Header>
+      </Appbar.Header> */}
+      <View>
+        <Text variant="titleLarge" style={{margin: 16}}>
+          Select Profile
+        </Text>
+      </View>
       <View style={styles.content}>
         <ScrollView
           horizontal={landscape}

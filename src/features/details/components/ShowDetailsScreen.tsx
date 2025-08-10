@@ -74,12 +74,6 @@ const ShowDetailsScreen: React.FC<ShowDetailsScreenProps> = ({show}) => {
   return (
     <ScrollView
       style={[styles.container, {backgroundColor: theme.colors.background}]}>
-      <StatusBar
-        barStyle="light-content"
-        backgroundColor="transparent"
-        translucent
-      />
-
       {/* Hero Image */}
       <View style={styles.heroContainer}>
         <Image

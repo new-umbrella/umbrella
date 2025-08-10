@@ -36,6 +36,10 @@ import PaginationBottomSheet from './src/features/search/presentation/components
 import {useFavoriteStore} from './src/features/details/presentation/state/useFavoriteStore';
 import FavoriteBottomSheet from './src/features/details/presentation/components/FavoriteBottomSheet';
 import MediaNavigator from './src/features/media/MediaNavigator';
+import {SystemBars} from 'react-native-edge-to-edge';
+import SystemNavigationBar from 'react-native-system-navigation-bar';
+import {usePluginSelectorBottomSheetStore} from './src/features/home/presentation/state/usePluginSelectorBottomSheetStore';
+import PluginSelectorBottomSheet from './src/features/home/presentation/components/PluginSelectorBottomSheet';
 
 const Stack = createNativeStackNavigator();
 
@@ -83,6 +87,18 @@ export default function App() {
   }, []);
 
   const colorScheme = useColorScheme();
+
+  useEffect(() => {
+    if (colorScheme === 'dark') {
+      SystemNavigationBar.setNavigationColor(DarkTheme.colors.background);
+      StatusBar.setBarStyle('light-content');
+      StatusBar.setBackgroundColor(DarkTheme.colors.background);
+    } else {
+      SystemNavigationBar.setNavigationColor(LightTheme.colors.background);
+      StatusBar.setBarStyle('dark-content');
+      StatusBar.setBackgroundColor(LightTheme.colors.background);
+    }
+  }, [colorScheme]);
 
   useEffect(() => {}, [colorScheme]);
 
@@ -229,6 +245,11 @@ export default function App() {
     }
   }, [favoriteBottomSheetVisible]);
 
+  const pluginSelectorBottomSheetRef = React.useRef<BottomSheet>(null);
+
+  const {bottomSheetVisible: pluginSelectorBottomSheetVisible} =
+    usePluginSelectorBottomSheetStore(state => state);
+
   return (
     <SafeAreaProvider>
       <SafeAreaView style={{flex: 1}}>
@@ -238,6 +259,18 @@ export default function App() {
             onReady={() => {
               isReadyRef.current = true;
             }}>
+            {/* <SystemBars hidden={true} /> */}
+            <SystemBars style={colorScheme === 'dark' ? 'light' : 'dark'} />
+            {/* <StatusBar
+              // barStyle={
+              //   colorScheme === 'dark' ? 'light-content' : 'dark-content'
+              // }
+              backgroundColor={
+                colorScheme === 'dark'
+                  ? DarkTheme.colors.background
+                  : LightTheme.colors.background
+              }
+            /> */}
             <GestureHandlerRootView style={{flex: 1}}>
               <Stack.Navigator
                 screenOptions={{
@@ -272,15 +305,6 @@ export default function App() {
                   }}
                 />
               </Stack.Navigator>
-              <View testID="status-bar">
-                <StatusBar
-                  translucent={true}
-                  backgroundColor={colorScheme === 'dark' ? '#000' : '#fff'}
-                  barStyle={
-                    colorScheme === 'dark' ? 'light-content' : 'dark-content'
-                  }
-                />
-              </View>
               <InstallPluginDialog />
               {extractorBottomSheetVisible && (
                 <ExtractorSourcesBottomSheet
@@ -292,6 +316,11 @@ export default function App() {
               )}
               {favoriteBottomSheetVisible && (
                 <FavoriteBottomSheet bottomSheetRef={favoriteBottomSheetRef} />
+              )}
+              {pluginSelectorBottomSheetVisible && (
+                <PluginSelectorBottomSheet
+                  bottomSheetRef={pluginSelectorBottomSheetRef}
+                />
               )}
             </GestureHandlerRootView>
           </NavigationContainer>
