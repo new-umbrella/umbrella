@@ -451,8 +451,8 @@ const DetailsNavigator = () => {
                 return (
                   <TouchableOpacity
                     key={episode.id}
-                    // onPress={async () => await handleEpisodePress(globalIndex)}>
-                    onPress={() => handlePlay()}>
+                    // onPress={() => handlePlay()}>
+                    onPress={async () => await handleEpisodePress(globalIndex)}>
                     <View style={styles.episodeItem}>
                       <Text
                         style={{
