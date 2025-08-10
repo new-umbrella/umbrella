@@ -27,15 +27,37 @@ export const ExtractorService = {
         e.patterns.some(p => data.url.match(p)) &&
         e.extractorMediaType === data.type,
     );
-    console.log(matchedExtractors);
+    console.log(
+      'Matched extractors:',
+      matchedExtractors.map(m => m.id || m),
+    );
     if (matchedExtractors.length === 0) {
       throw new Error('Extractor not found');
     }
     var sources: (RawAudio | RawVideo)[] = [];
 
-    for (const extractor of matchedExtractors) {
-      for (const extract of extractor.extractors) {
-        sources.push(...(await extract.execute(data)));
+    // Iterate matched extractors and call each extractor implementation.
+    for (const extractorInfo of matchedExtractors) {
+      console.log('Running extractor info:', extractorInfo.id ?? extractorInfo);
+      for (const extractorInstance of extractorInfo.extractors) {
+        try {
+          console.log(
+            `Calling execute on extractor instance: ${extractorInstance.name}`,
+          );
+          const result = await extractorInstance.execute(data);
+          console.log(
+            `Result from ${extractorInstance.name}:`,
+            Array.isArray(result) ? result.length : typeof result,
+          );
+          if (Array.isArray(result) && result.length > 0) {
+            sources.push(...(result as (RawAudio | RawVideo)[]));
+          }
+        } catch (err) {
+          console.warn(
+            `Extractor ${extractorInstance.name} threw an error:`,
+            err,
+          );
+        }
       }
     }
 

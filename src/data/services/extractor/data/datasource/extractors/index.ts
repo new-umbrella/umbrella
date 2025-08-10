@@ -21,6 +21,7 @@ import VidCloudInfo from './video/VidCloud';
 import VidMolyInfo from './video/VidMoly';
 import VizCloudInfo from './video/VizCloud';
 import VoeInfo from './video/Voe';
+import UniversalExtractorInfo from './video/UniversalExtractor';
 
 // Newly added extractors (converted from Python to Typescript from https://github.com/yogesh-hacker/MediaVanced)
 import VcdnlareInfo from './video/Vcdnlare';
@@ -67,6 +68,7 @@ const Extractors = {
     new VidMolyInfo(),
     new VizCloudInfo(),
     new VoeInfo(),
+    new UniversalExtractorInfo(),
 
     // Converted from ref/MediaVanced-main/sites
     new VcdnlareInfo(),

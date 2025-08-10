@@ -271,6 +271,7 @@ const HomeNavigator: React.FC<HomeNavigatorProps> = () => {
         icon="filter-variant"
         label="Gogoanime"
         color={theme.colors.onSurface}
+        mode="flat"
         style={{
           backgroundColor: theme.colors.surface,
           position: 'absolute',

@@ -67,18 +67,19 @@ export default function App() {
     SplashScreen.hide();
     nodejs.start('main.js');
     // const extract = async () => {
+    //   setExtractorBottomSheetVisible(true);
     //   const result = await ExtractorService.extract({
     //     type: MediaType.ExtractorVideo,
-    //     url: 'https://s3taku.one/watch?play=125',
-    //     name: 'GogoCdn',
+    //     url: 'https://gogoanimez.to/naruto-shippuden-episode-420/',
+    //     name: 'test',
     //     iconUrl: 'https://www.svgrepo.com/show/433942/gear.svg',
     //   } as ExtractorVideo);
     //   console.log(result);
     // };
     // extract();
-    nodejs.channel.addListener('message', message => {
-      Alert.alert('From NodeJS', message);
-    });
+    // nodejs.channel.addListener('message', message => {
+    //   Alert.alert('From NodeJS', message);
+    // });
   }, []);
 
   const colorScheme = useColorScheme();
@@ -192,8 +193,10 @@ export default function App() {
 
   const extractorBottomSheetRef = React.useRef<BottomSheet>(null);
 
-  const {bottomSheetVisible: extractorBottomSheetVisible} =
-    useExtractorServiceStore(state => state);
+  const {
+    bottomSheetVisible: extractorBottomSheetVisible,
+    setBottomSheetVisible: setExtractorBottomSheetVisible,
+  } = useExtractorServiceStore(state => state);
 
   useEffect(() => {
     console.log('bottomSheetVisible', extractorBottomSheetVisible);

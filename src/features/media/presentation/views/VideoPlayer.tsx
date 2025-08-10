@@ -271,6 +271,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     // return () => subscription.remove();
     const enableFullscreen = async () => {
       Orientation.lockToLandscape();
+      StatusBar.setHidden(true);
       await SystemNavigationBar.navigationHide();
       setIsFullscreen(true);
       // Orientation.lockToLandscapeLeft();
@@ -279,6 +280,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     enableFullscreen();
     return () => {
       Orientation.unlockAllOrientations();
+      StatusBar.setHidden(false);
       SystemNavigationBar.navigationShow();
       setIsFullscreen(false);
       // Orientation.unlockAllOrientations();

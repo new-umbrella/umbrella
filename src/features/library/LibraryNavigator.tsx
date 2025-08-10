@@ -102,7 +102,11 @@ const LibraryNavigator = () => {
           ...styles.cardContent,
           // backgroundColor: theme.dark ? '#101010' : '#f0f0f0',
         }}>
-        <Text variant="titleMedium" style={{color: theme.colors.onSurface}}>
+        <Text
+          variant="titleMedium"
+          numberOfLines={2}
+          ellipsizeMode="tail"
+          style={{color: theme.colors.onSurface}}>
           {favorite.item.name}
         </Text>
         <View style={styles.sourceContainer}>
@@ -112,15 +116,12 @@ const LibraryNavigator = () => {
           />
           <Text
             variant="bodyMedium"
+            numberOfLines={2}
+            ellipsizeMode="tail"
             style={{color: theme.colors.onSurfaceVariant}}>
-            {favorite.item.source?.name} - {favorite.item.type}
+            {favorite.item.source?.name}
           </Text>
         </View>
-        <Text
-          variant="bodySmall"
-          style={{color: theme.colors.onSurfaceVariant}}>
-          {favorite.item.description}
-        </Text>
       </Card.Content>
     </Card>
   );
@@ -150,7 +151,7 @@ const LibraryNavigator = () => {
       <View
         style={[
           styles.filterContainer,
-          {backgroundColor: theme.colors.surface},
+          {backgroundColor: theme.colors.background},
         ]}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           {Object.values(FavoriteCategoryType).map((sourceType, index) => (
@@ -180,6 +181,8 @@ const LibraryNavigator = () => {
         keyExtractor={item => item.id}
         horizontal={false}
         contentContainerStyle={styles.contentContainer}
+        numColumns={2}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -226,18 +229,18 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: 8,
-    display: 'flex',
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    // display: 'flex',
+    // flexDirection: 'row',
+    // flexWrap: 'wrap',
+    // justifyContent: 'space-between',
     width: '100%',
   },
   card: {
     flex: 1,
     margin: 4,
     elevation: 2,
-    width: Dimensions.get('window').width / 2 - 16,
-    height: 350,
+    width: '48%',
+    height: 375,
     padding: 8,
   },
   cardContent: {
@@ -246,7 +249,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   cardImage: {
-    height: '70%',
+    height: 250,
   },
   sourceContainer: {
     flexDirection: 'row',

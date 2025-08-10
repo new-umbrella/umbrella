@@ -2815,6 +2815,25 @@
   resolved "https://registry.yarnpkg.com/@vscode/sudo-prompt/-/sudo-prompt-9.3.1.tgz#c562334bc6647733649fd42afc96c0eea8de3b65"
   integrity sha512-9ORTwwS74VaTn38tNbQhsA5U44zkJfcb0BdTSyyG6frP4e8KMtHuTXYmwefe5dpL8XB1aGSIVTaLjD3BbWb5iA==
 
+"@webview-bridge/react-native@^1.7.8":
+  version "1.7.8"
+  resolved "https://registry.yarnpkg.com/@webview-bridge/react-native/-/react-native-1.7.8.tgz#fe2115cc3f4abe06cb98d8538360df20e2cc4ef8"
+  integrity sha512-VCGJrocTYZbi53yIHwqlmjKCvGHQUILf7cPWfrc3WZHg0jItyrUJ9JR6hiQjt7/KvRQ3CyoPa2f1iHczBq72ZQ==
+  dependencies:
+    "@webview-bridge/types" "1.7.8"
+    "@webview-bridge/utils" "1.7.8"
+    use-sync-external-store "^1.2.0"
+
+"@webview-bridge/types@1.7.8":
+  version "1.7.8"
+  resolved "https://registry.yarnpkg.com/@webview-bridge/types/-/types-1.7.8.tgz#967904039216b5bc01d17e400a730e345eb83830"
+  integrity sha512-xy4xi58Bgpq0WxwZUP2xPi/vNWTPNgXCvN4Xz0sEpAitH4VCgY8HqFrgJgwRQMyNgaJN8MSM/384/PvDRV0jeg==
+
+"@webview-bridge/utils@1.7.8":
+  version "1.7.8"
+  resolved "https://registry.yarnpkg.com/@webview-bridge/utils/-/utils-1.7.8.tgz#ef150544ca328c53778affff40fe8fe6ac79e825"
+  integrity sha512-e2lqfRud8tW6ydQ9p6cOsvtMIa22Tb+uOsdNPddFg24eRPz5ynoMS33jzqr/DWCBFwB21aHr91SzBW2M+yiG3A==
+
 "@wix-pilot/core@^3.3.0":
   version "3.3.4"
   resolved "https://registry.yarnpkg.com/@wix-pilot/core/-/core-3.3.4.tgz#c235f3a94fe6acf64a4c1b6b83d6f2d41bb1c9d1"
@@ -5402,7 +5421,7 @@ internal-slot@^1.1.0:
     hasown "^2.0.2"
     side-channel "^1.1.0"
 
-invariant@^2.2.4:
+invariant@2.2.4, invariant@^2.2.4:
   version "2.2.4"
   resolved "https://registry.yarnpkg.com/invariant/-/invariant-2.2.4.tgz#610f3c92c9359ce1db616e538008d23ff35158e6"
   integrity sha512-phJfQVBuaJM5raOpJjSfkiD6BpbCE4Ns//LaXl6wGYtUBY83nWS6Rf9tXm2e8VaK60JEjYldbPif/A2B1C2gNA==
@@ -7962,6 +7981,14 @@ react-native-video@6.0.0:
   resolved "https://registry.yarnpkg.com/react-native-video/-/react-native-video-6.0.0.tgz#0bf65e36ef64f3f518e208ccf7a6b2455e75497b"
   integrity sha512-G1b2L2DDbRWgyBRoQLonUEiOcsTSCfNPxGbzd6lYdhOUIyoAeBXarfFSg+89xMF6R36j7f+147FVxkjz6r60jQ==
 
+react-native-webview@^13.15.0:
+  version "13.15.0"
+  resolved "https://registry.yarnpkg.com/react-native-webview/-/react-native-webview-13.15.0.tgz#b6d2f8d8dd65897db76659ddd8198d2c74ec5a79"
+  integrity sha512-Vzjgy8mmxa/JO6l5KZrsTC7YemSdq+qB01diA0FqjUTaWGAGwuykpJ73MDj3+mzBSlaDxAEugHzTtkUQkQEQeQ==
+  dependencies:
+    escape-string-regexp "^4.0.0"
+    invariant "2.2.4"
+
 react-native@0.76.5:
   version "0.76.5"
   resolved "https://registry.yarnpkg.com/react-native/-/react-native-0.76.5.tgz#3ce43d3c31f46cfd98e56ef2dfc70866c04ad185"
@@ -9245,7 +9272,7 @@ use-latest-callback@^0.2.3, use-latest-callback@^0.2.4:
   resolved "https://registry.yarnpkg.com/use-latest-callback/-/use-latest-callback-0.2.4.tgz#35c0f028f85a3f4cf025b06011110e87cc18f57e"
   integrity sha512-LS2s2n1usUUnDq4oVh1ca6JFX9uSqUncTfAm44WMg0v6TxL7POUTk1B044NH8TeLkFbNajIsgDHcgNpNzZucdg==
 
-use-sync-external-store@^1.5.0:
+use-sync-external-store@^1.2.0, use-sync-external-store@^1.5.0:
   version "1.5.0"
   resolved "https://registry.yarnpkg.com/use-sync-external-store/-/use-sync-external-store-1.5.0.tgz#55122e2a3edd2a6c106174c27485e0fd59bcfca0"
   integrity sha512-Rb46I4cGGVBmjamjphe8L/UnvJD+uPPtTkNvX5mZgqdbavhI4EbgIWJiIHXJ8bc/i9EQGPRh4DwEURJ552Do0A==

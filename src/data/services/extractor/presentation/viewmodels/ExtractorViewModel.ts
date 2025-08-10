@@ -12,6 +12,10 @@ export class ExtractorViewModel implements ExtractorRepository {
   extract(
     data: ExtractorVideo | ExtractorAudio,
   ): Promise<RawAudio[] | RawVideo[]> {
+    // Trace log to verify the viewmodel extract entry point is called.
+    try {
+      console.log('ExtractorViewModel.extract called with:', data?.url ?? data);
+    } catch (e) {}
     return extract.execute(data);
   }
 }

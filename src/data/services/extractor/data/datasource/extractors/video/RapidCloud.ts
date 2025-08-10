@@ -60,7 +60,7 @@ class RapidCloud implements Extractor {
         `https://${videoUrl.hostname}/embed-2/v2/e-1/getSources?id=${id}`,
         options,
       );
-      console.log(res.data);
+      // console.log(res.data);
 
       let {
         data: {sources, tracks, intro, outro, encrypted},
@@ -84,7 +84,7 @@ class RapidCloud implements Extractor {
           )
         ).data;
       }
-      console.log(decryptKey);
+      // console.log(decryptKey);
 
       if (!decryptKey) decryptKey = this.fallbackKey;
 
@@ -137,16 +137,16 @@ class RapidCloud implements Extractor {
           sources = maskedSources.join('');
 
           // Debug logs to help diagnose extraction issues
-          console.log(
-            'RapidCloud raw decryptKey (post-parse):',
-            JSON.stringify(decryptKey),
-          );
-          console.log('RapidCloud extractedKey (raw):', extractedKey);
-          console.log('RapidCloud extractedKey length:', extractedKey.length);
-          console.log(
-            'RapidCloud masked sources (prefix):',
-            sources ? sources.substring(0, 120) : '(empty)',
-          );
+          // console.log(
+          //   'RapidCloud raw decryptKey (post-parse):',
+          //   JSON.stringify(decryptKey),
+          // );
+          // console.log('RapidCloud extractedKey (raw):', extractedKey);
+          // console.log('RapidCloud extractedKey length:', extractedKey.length);
+          // console.log(
+          //   'RapidCloud masked sources (prefix):',
+          //   sources ? sources.substring(0, 120) : '(empty)',
+          // );
 
           // Prefer using the extractedKey (if present) as the passphrase (OpenSSL-compatible)
           const passphrase =
@@ -155,10 +155,10 @@ class RapidCloud implements Extractor {
               ? decryptKey
               : String(decryptKey)) ||
             this.fallbackKey;
-          console.log(
-            'RapidCloud using passphrase (length):',
-            (passphrase || '').length,
-          );
+          // console.log(
+          //   'RapidCloud using passphrase (length):',
+          //   (passphrase || '').length,
+          // );
 
           let decryptedText = '';
           let lastErr: any = null;
@@ -221,9 +221,9 @@ class RapidCloud implements Extractor {
 
           try {
             // First attempt: let CryptoJS handle passphrase (works for many OpenSSL salted payloads)
-            console.log(
-              'RapidCloud decrypt attempt: passphrase-string (direct)',
-            );
+            // console.log(
+            //   'RapidCloud decrypt attempt: passphrase-string (direct)',
+            // );
             try {
               decryptedText = CryptoJS.AES.decrypt(
                 sources,
@@ -240,9 +240,9 @@ class RapidCloud implements Extractor {
               typeof sources === 'string' &&
               sources.startsWith('U2FsdGVk')
             ) {
-              console.log(
-                'RapidCloud decrypt attempt: explicit OpenSSL EVP_BytesToKey + AES-CBC',
-              );
+              // console.log(
+              //   'RapidCloud decrypt attempt: explicit OpenSSL EVP_BytesToKey + AES-CBC',
+              // );
               const parsed = parseOpenSSLCipher(sources);
               if (!parsed || !parsed.ciphertext) {
                 lastErr = new Error('Failed to parse OpenSSL ciphertext');

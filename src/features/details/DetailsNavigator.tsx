@@ -305,7 +305,7 @@ const DetailsNavigator = () => {
           {details.genres && details.genres.length > 0 && (
             <View style={styles.genreRow}>
               {details.genres.map((genre, index) => (
-                <Text key={genre.id} style={styles.genreText}>
+                <Text key={index} style={styles.genreText}>
                   {genre.name}
                   {index < (details.genres!.length || 0) - 1 && ' • '}
                 </Text>
@@ -433,6 +433,7 @@ const DetailsNavigator = () => {
             </View>
 
             {details.media
+              .sort((a, b) => a.number - b.number)
               .slice(
                 currentPage * itemsPerPage,
                 (currentPage + 1) * itemsPerPage,
@@ -442,7 +443,7 @@ const DetailsNavigator = () => {
                 return (
                   <TouchableOpacity
                     key={episode.id}
-                    //  onPress={() => handlePlay()}>
+                    // onPress={() => handlePlay()}>
                     onPress={async () => await handleEpisodePress(globalIndex)}>
                     <View style={styles.episodeItem}>
                       <Text
