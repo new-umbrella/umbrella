@@ -303,7 +303,10 @@ const HomeNavigator: React.FC<HomeNavigatorProps> = () => {
           {homePageData.map((category, index) => (
             <CategorySwiper
               key={`${category.name}-${index}`}
-              category={category}
+              category={{
+                ...category,
+                source: selectedPlugin,
+              }}
               onSeeAllPress={() =>
                 navigation.navigate('Category', {title: category.name})
               }
