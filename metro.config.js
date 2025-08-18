@@ -10,14 +10,13 @@ const {
  *
  * @type {import('metro-config').MetroConfig}
  */
-const blacklist = require('metro-config/src/defaults/exclusionList');
 const config = {
   resolver: {
-    blacklistRE: blacklist([
+    blockList: [
       /\/nodejs-assets\/.*/,
       /\/android\/.*/,
       /\/ios\/.*/,
-    ]),
+    ]
   },
 };
 
