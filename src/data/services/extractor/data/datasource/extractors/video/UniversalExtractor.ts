@@ -49,6 +49,33 @@ class UniversalExtractor implements Extractor {
           ? useExtractorServiceStore.getState()
           : useExtractorServiceStore;
 
+      // Detect availability of react-native-intercepting-webview (installed as requested).
+      // We don't directly control the UI WebView from this non-UI module, but log
+      // presence for debugging / telemetry so the rest of the pipeline can use it.
+      let interceptingWebviewAvailable = false;
+      try {
+        // Use require so bundlers don't fail at static-eval time if the package is absent.
+        // This is intentionally non-fatal.
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const _mod = require('react-native-intercepting-webview');
+        if (_mod) interceptingWebviewAvailable = true;
+      } catch (e) {
+        // ignore - optional dependency
+      }
+      if (interceptingWebviewAvailable) {
+        try {
+          console.log(
+            '[UniversalExtractor] react-native-intercepting-webview is available — hidden WebView may intercept requests natively',
+          );
+        } catch (e) {}
+      } else {
+        try {
+          console.log(
+            '[UniversalExtractor] react-native-intercepting-webview not found — falling back to message-based detection via hidden WebView',
+          );
+        } catch (e) {}
+      }
+
       // If the store exposes sendWebviewRequest, use it. It will set a
       // currentWebviewRequest in the store and return a Promise that resolves
       // when the hidden WebView posts back the discovered URLs. The hidden

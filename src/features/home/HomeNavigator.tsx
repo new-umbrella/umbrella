@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Appbar,
   FAB,
+  Text,
   TouchableRipple,
   useTheme,
 } from 'react-native-paper';
@@ -201,11 +202,16 @@ const mockTabs = [
 
 const HomeNavigator: React.FC<HomeNavigatorProps> = () => {
   const navigation = useNavigation<any>();
-  const {selectedPlugin} = useHomePageDataStore();
+  const {
+    selectedPlugin,
+    homePageData,
+    setHomePageData,
+    homeHeroItem,
+    setHomeHeroItem,
+  } = useHomePageDataStore();
   const {setBottomSheetVisible} = usePluginSelectorBottomSheetStore();
 
   const [loading, setLoading] = useState(false);
-  const [homePageData, setHomePageData] = useState<Category[]>([]);
 
   const getHomePageData = async (plugin: Plugin) => {
     setLoading(true);
@@ -220,6 +226,7 @@ const HomeNavigator: React.FC<HomeNavigatorProps> = () => {
   };
 
   useEffect(() => {
+    if (!selectedPlugin?.name || homePageData[0]?.name) return;
     getHomePageData(selectedPlugin);
   }, [selectedPlugin]);
 
@@ -255,10 +262,8 @@ const HomeNavigator: React.FC<HomeNavigatorProps> = () => {
 
   const {activeProfile} = useProfileStore();
 
-  const [homeHeroItem, setHomeHeroItem] = useState<Item>({} as Item);
-
   useEffect(() => {
-    if (homePageData.length > 0) {
+    if (homePageData.length > 0 && !homeHeroItem) {
       setHomeHeroItem(
         homePageData.flatMap(category => category.items)[
           Math.floor(
@@ -277,12 +282,24 @@ const HomeNavigator: React.FC<HomeNavigatorProps> = () => {
         <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
           <ActivityIndicator size={'large'} />
         </View>
+      ) : !selectedPlugin.name ? (
+        <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+          <Text
+            style={{
+              color: theme.colors.onBackground,
+              textAlign: 'center',
+            }}>
+            Please select or install a plugin
+          </Text>
+          <View style={{height: 8}} />
+          <Text>(╥﹏╥)</Text>
+        </View>
       ) : (
         <ScrollView
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}>
-          {homeHeroItem.name && (
+          {homeHeroItem && (
             <HomexHero
               title={homeHeroItem.name}
               description={homeHeroItem.description ?? ''}

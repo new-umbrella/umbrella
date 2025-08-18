@@ -28,7 +28,7 @@ const CategorySwiper: React.FC<CategorySwiperProps> = ({
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>{category.name}</Text>
-        {onSeeAllPress && (
+        {onSeeAllPress && category.isPaginated && (
           <TouchableOpacity style={styles.seeAll} onPress={onSeeAllPress}>
             <Icon source={'arrow-right'} size={24} color="#A0A0A0" />
           </TouchableOpacity>

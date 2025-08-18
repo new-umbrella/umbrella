@@ -189,6 +189,34 @@ export const useExtractorServiceStore = create<ExtractorServiceState>()(
             'id:',
             id,
           );
+          // If a fallback timeout was scheduled earlier, clear it and reschedule
+          // it so it won't fire before our deferred resolve (gives deferredTimer
+          // a chance to run).
+          try {
+            if (obj.fallbackTimeout) {
+              clearTimeout(obj.fallbackTimeout);
+              // Schedule a new fallback slightly after the deferred timer
+              obj.fallbackTimeout = setTimeout(() => {
+                try {
+                  console.warn(
+                    '[ExtractorStore] rescheduled fallback fired for id:',
+                    id,
+                  );
+                  if (obj && typeof obj.resolveFn === 'function') {
+                    obj.resolveFn(
+                      obj.latestPayload || {videos: [], subtitles: []},
+                    );
+                  }
+                } catch (e) {}
+                try {
+                  delete webviewResolvers[id];
+                } catch (e) {}
+                try {
+                  set({currentWebviewRequest: null});
+                } catch (e) {}
+              }, remaining + 2000);
+            }
+          } catch (e) {}
           // Schedule final resolution to happen waitMs after the postedAt of this payload.
           obj.deferredTimer = setTimeout(() => {
             try {

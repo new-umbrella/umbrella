@@ -63,6 +63,34 @@ export const ExtractorService = {
 
     sources = sources.flat();
 
+    // Also push discovered sources directly into the extractor presentation store
+    // so the bottom sheet UI sees results immediately even if there are timing
+    // races with the hidden WebView request/response handling.
+    try {
+      const storeModule: any = await import(
+        '../../presentation/state/ExtractorServiceStore'
+      ).catch(() => null);
+      const useExtractorServiceStore = storeModule?.useExtractorServiceStore;
+      const store =
+        useExtractorServiceStore &&
+        typeof useExtractorServiceStore.getState === 'function'
+          ? useExtractorServiceStore.getState()
+          : useExtractorServiceStore;
+      if (store && typeof store.setSources === 'function') {
+        try {
+          (store.setSources as any)(sources as (RawAudio | RawVideo)[]);
+          console.log(
+            '[ExtractorService] pushed sources to ExtractorServiceStore:',
+            sources.length,
+          );
+        } catch (e) {
+          console.warn('[ExtractorService] failed to setSources on store', e);
+        }
+      }
+    } catch (e) {
+      console.warn('[ExtractorService] failed to import extractor store', e);
+    }
+
     if (data.type === MediaType.ExtractorAudio) {
       return sources as RawAudio[];
     }

@@ -177,6 +177,7 @@ const PluginListView = () => {
       )}
       <FAB
         icon="plus"
+        mode="flat"
         color={theme.colors.onSurface}
         style={{
           backgroundColor: theme.colors.surface,

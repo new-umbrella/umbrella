@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {usePluginStore} from '../../../plugins/presentation/state/usePluginStore';
 import {PluginViewModel} from '../../../plugins/presentation/viewmodels/PluginsViewModel';
 import {PluginService} from '../../../plugins/data/datasource/PluginService';
+import Item from '../../../plugins/data/model/item/Item';
 
 // Home page data store
 // This is used to store the home page data.
@@ -14,6 +15,10 @@ import {PluginService} from '../../../plugins/data/datasource/PluginService';
 interface HompageDataStoreState {
   selectedPlugin: Plugin;
   setSelectedPlugin: (selectedPlugin: Plugin) => void;
+  homePageData: Category[];
+  setHomePageData: (homePageData: Category[]) => void;
+  homeHeroItem: Item | null;
+  setHomeHeroItem: (homeHeroItem: Item | null) => void;
 }
 
 export const useHomePageDataStore = create(
@@ -21,7 +26,10 @@ export const useHomePageDataStore = create(
     (set, get) => ({
       selectedPlugin: {} as Plugin,
       setSelectedPlugin: (selectedPlugin: Plugin) => set({selectedPlugin}),
-      // homePageData: [],
+      homePageData: [] as Category[],
+      setHomePageData: (homePageData: Category[]) => set({homePageData}),
+      homeHeroItem: null,
+      setHomeHeroItem: (homeHeroItem: Item | null) => set({homeHeroItem}),
       // getHomePageData: async (homePageData: Category[]) => {
       //   set({
       //     homePageData: (await PluginService.runPluginMethodInSandbox(
