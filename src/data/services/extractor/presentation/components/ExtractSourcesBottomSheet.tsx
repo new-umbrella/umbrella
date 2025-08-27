@@ -1,4 +1,11 @@
-import {View, StyleSheet, Alert, Linking, Image} from 'react-native';
+import {
+  View,
+  StyleSheet,
+  Alert,
+  Linking,
+  Image,
+  DeviceEventEmitter,
+} from 'react-native';
 import React, {useEffect, useMemo, useState, useCallback, useRef} from 'react';
 import {ScrollView} from 'react-native-gesture-handler';
 import {
@@ -32,6 +39,10 @@ import {MediaToView} from '../../../../../features/media/domain/entities/MediaTo
 import {bridge as createBridge} from '@webview-bridge/react-native';
 import {WebViewMessageEvent} from 'react-native-webview';
 import {FiltersEngine, Request as AdblockRequest} from '@ghostery/adblocker';
+import {
+  InterceptEvent,
+  InterceptWebView,
+} from '../../../../../core/shared/components/intercepting-webview';
 
 const ExtractorSourcesBottomSheet = ({
   bottomSheetRef,
@@ -58,6 +69,10 @@ const ExtractorSourcesBottomSheet = ({
     receiveWebviewResponse,
   } = useExtractorServiceStore(state => state);
 
+  // Track native intercept readiness (declare early so it's not used before declaration)
+  const [nativeInterceptReady, setNativeInterceptReady] =
+    useState<boolean>(false);
+
   // Create a lightweight webview-bridge here so injected pages can call native methods
   // instead of (or in addition to) window.ReactNativeWebView.postMessage.
   // We keep the bridge creation inside the component so it can close over the
@@ -73,6 +88,26 @@ const ExtractorSourcesBottomSheet = ({
               typeof payloadStr === 'string'
                 ? JSON.parse(payloadStr)
                 : payloadStr;
+
+            // If native interception is available, ignore JS bridge payloads.
+            // This prevents the injected script from overriding native matches.
+            try {
+              if (
+                interceptingAvailableRef &&
+                interceptingAvailableRef.current
+              ) {
+                try {
+                  console.log(
+                    '[ExtractorBottomSheet][bridge] Ignoring JS bridge payload because native interception is active',
+                    payload && payload.__meta
+                      ? payload.__meta.stage
+                      : undefined,
+                  );
+                } catch (e) {}
+                return true;
+              }
+            } catch (e) {}
+
             // Forward payload to the extractor store using the current request id
             // If there's no active request, just ignore.
             try {
@@ -110,19 +145,21 @@ const ExtractorSourcesBottomSheet = ({
   }, []);
 
   // Create the WebView component. To guarantee onMessage compatibility,
-  // use the default react-native-webview implementation.
+  // prefer the local InterceptWebView when present, otherwise fall back
+  // to react-native-webview (no 3rd-party package required).
   const WebViewComponent = React.useMemo(() => {
-    // Prefer react-native-intercepting-webview when available; otherwise fall back to react-native-webview.
     try {
-      // Dynamically require so bundlers that don't include the package won't fail at module-eval time.
-      const mod = require('react-native-intercepting-webview');
-      const candidate =
-        mod && (mod.InterceptingWebView || mod.default || mod.WebView || mod);
-      if (candidate) {
-        return candidate;
+      // Prefer the in-repo InterceptWebView so we get adblock + native interception.
+      // Use a relative require so bundlers that don't include the file won't fail at module-eval time.
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const local = require('../../../../../core/shared/components/intercepting-webview');
+      const localCandidate =
+        local && (local.InterceptWebView || local.default || local);
+      if (localCandidate) {
+        return localCandidate;
       }
     } catch (e) {
-      // Not available — fall back quietly.
+      // not available — continue to fallback
     }
     try {
       return (require('react-native-webview') as any).WebView;
@@ -131,19 +168,34 @@ const ExtractorSourcesBottomSheet = ({
         '[ExtractorBottomSheet] failed to load a WebView implementation',
         e,
       );
-      // As a last resort attempt to return whatever react-native-webview exposes.
       return (require('react-native-webview') as any).WebView;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Detect whether the native intercepting WebView package is available.
-  // We'll use a runtime require so the code remains safe if the package isn't installed.
+  // State that tracks whether the native intercept implementation has reported readiness.
+  // Detect whether an intercepting WebView implementation is available.
+  // Prefer the local in-repo InterceptWebView only (no 3rd-party require).
+  // Use the module's exported `nativeInterceptAvailable` flag so we only treat
+  // the implementation as "intercepting" when the native Android component is present.
   const interceptingAvailableRef = React.useRef<boolean>(false);
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const _mod = require('react-native-intercepting-webview');
-    if (_mod) interceptingAvailableRef.current = true;
+    const local = require('../../../../../core/shared/components/intercepting-webview');
+    const localCandidate =
+      local && (local.InterceptWebView || local.default || local);
+    const nativeAvailable = !!(
+      local && local.nativeInterceptAvailable === true
+    );
+    interceptingAvailableRef.current = !!localCandidate && nativeAvailable;
+    try {
+      console.log(
+        '[ExtractorBottomSheet] interceptingAvailable (native):',
+        interceptingAvailableRef.current,
+        'module.nativeInterceptAvailable:',
+        nativeAvailable,
+      );
+    } catch (e) {}
   } catch (e) {
     interceptingAvailableRef.current = false;
   }
@@ -151,36 +203,104 @@ const ExtractorSourcesBottomSheet = ({
   // When using a native intercepting WebView, prefer nativeUrlRegex + onNativeMatch.
   // Build a regex that matches likely video/subtitle asset URLs (ext + query/hash).
   const nativeUrlRegex = new RegExp(
-    '\\.(m3u8|mp4|mkv|webm|flv|mov|avi|wmv|m4p|m4b|m4v|srt|vtt|ass|ssa|smi)(?:[?#]|$)',
+    '\\.(m3u8|mp4|mkv|webm|flv|mov|avi|wmv|m4p|m4b|m4v|srt|vtt|ass|ssa|smi)(\\?.*)?$',
     'i',
   );
 
   // webviewExtraProps will be spread into the WebView. It includes nativeUrlRegex/onNativeMatch
-  // only when an intercepting native WebView implementation is available.
+  // and DOM-hooking / echo flags when an intercepting implementation is available.
+  // Helper: strict extension/substring-based media URL filter used for native matches and JS results.
+  const isAllowedMediaUrl = (rawUrl?: string) => {
+    try {
+      if (!rawUrl || typeof rawUrl !== 'string') return false;
+      const s = rawUrl.split('?')[0].split('#')[0].trim();
+      if (!s) return false;
+      const lower = s.toLowerCase();
+      // Quick substring check for streaming playlist
+      if (lower.indexOf('.m3u8') !== -1) return true;
+      const parts = s.split('.');
+      if (parts.length < 2) return false;
+      const ext = parts[parts.length - 1].toLowerCase();
+      if (/^(m3u8|mp4|mkv|webm|flv|mov|avi|wmv|m4p|m4b|m4v|ts)$/.test(ext))
+        return true;
+      if (/^(srt|vtt|ass|ssa|smi)$/.test(ext)) return true;
+      return false;
+    } catch (e) {
+      return false;
+    }
+  };
+
   const webviewExtraProps: any = {};
   if (interceptingAvailableRef.current) {
-    webviewExtraProps.nativeUrlRegex = nativeUrlRegex;
+    // Ensure the native view receives the nativeUrlRegex prop as early as possible
+    // (before we navigate). This increases the chance the native interceptor sees
+    // the first resource requests. Use the request-specific regex when provided.
+    const currentReq = currentWebviewRequest as any;
+    const requestRegex =
+      currentReq && currentReq.nativeUrlRegex
+        ? currentReq.nativeUrlRegex
+        : nativeUrlRegex && nativeUrlRegex.source
+        ? nativeUrlRegex.source
+        : String(nativeUrlRegex);
+    webviewExtraProps.nativeUrlRegex = requestRegex;
+    // Keep aggressive DOM hooking available for native implementations.
+    webviewExtraProps.aggressiveDomHooking = true;
+    // Until native explicitly signals readiness, allow JS-discovered requests to be echoed
+    // so the fallback path can still function. Once nativeInterceptReady becomes true,
+    // we will stop echoing JS results (handled in message processing).
+    webviewExtraProps.echoAllRequestsFromJS = !nativeInterceptReady;
+    webviewExtraProps.onMessage = (e: any) => {
+      console.log('[ExtractorBottomSheet] ===== onMessage', e.nativeEvent.data);
+    };
     webviewExtraProps.onNativeMatch = (matchInfo: any) => {
       try {
         // matchInfo shape can vary across implementations; try common fields.
-        const url =
+        const candidateRaw =
           (matchInfo &&
             (matchInfo.url || (matchInfo.request && matchInfo.request.url))) ||
           (matchInfo && matchInfo.match && matchInfo.match[0]) ||
+          (matchInfo && matchInfo.matchedUrl) ||
           null;
-        if (!url) return;
-        const p = String(url).split('?')[0].split('#')[0];
+        if (!candidateRaw) return;
+        const candidate = String(candidateRaw).trim();
+
+        // Reject obvious player/container page URLs (common false-positives) early.
+        // Examples: newplayer.php, any .php page, '/player' paths, '/watch' endpoints, etc.
+        try {
+          if (/(?:\.php\b|\/player\b|newplayer|\/watch\b)/i.test(candidate)) {
+            try {
+              console.log(
+                '[ExtractorBottomSheet] onNativeMatch ignored player/container URL (false-positive):',
+                candidate,
+              );
+            } catch (e) {}
+            return;
+          }
+        } catch (e) {}
+
+        // Strictly allow only well-known media/subtitle extensions before forwarding
+        if (!isAllowedMediaUrl(candidate)) {
+          try {
+            console.log(
+              '[ExtractorBottomSheet] onNativeMatch ignored non-media url:',
+              candidate,
+            );
+          } catch (e) {}
+          return;
+        }
+
+        const p = String(candidate).split('?')[0].split('#')[0];
         const ext = p.split('.').pop() || '';
         const isSubtitle = /^(srt|vtt|ass|ssa|smi)$/i.test(ext);
         const isVideo =
           /^(m3u8|mp4|mkv|webm|flv|mov|avi|wmv|m4p|m4b|m4v)$/i.test(ext) ||
-          String(url).toLowerCase().includes('.m3u8');
+          String(candidate).toLowerCase().includes('.m3u8');
 
         // Update debug UI
         try {
           setLastWebviewMessage({
-            videos: isVideo ? [url] : [],
-            subtitles: isSubtitle ? [url] : [],
+            videos: isVideo ? [candidate] : [],
+            subtitles: isSubtitle ? [candidate] : [],
           });
         } catch (e) {}
 
@@ -190,16 +310,38 @@ const ExtractorSourcesBottomSheet = ({
           const current = state.currentWebviewRequest;
           if (current && current.id) {
             state.receiveWebviewResponse(current.id, {
-              videos: isVideo ? [url] : [],
-              subtitles: isSubtitle ? [url] : [],
+              videos: isVideo ? [candidate] : [],
+              subtitles: isSubtitle ? [candidate] : [],
               __meta: {
                 postedAt: Date.now(),
-                waitMs: (current && current.waitMs) || 1500,
+                waitMs: (current && current.waitMs) || 10000,
                 stage: 'native-match',
               },
             } as any);
           }
         } catch (e) {}
+      } catch (e) {}
+    };
+
+    // Log and surface raw native intercept events for diagnostics only.
+    webviewExtraProps.onIntercept = (evt: InterceptEvent | any) => {
+      try {
+        const u = (evt && (evt.url || evt.nativeEvent?.url)) || null;
+        console.log(
+          '[ExtractorBottomSheet] onIntercept event (native):',
+          u,
+          'kind:',
+          evt?.kind || 'native',
+        );
+        try {
+          setLastWebviewMessage({
+            videos: u ? [u] : [],
+            subtitles: [],
+          });
+        } catch (e) {}
+        // IMPORTANT: Do NOT forward raw onIntercept events to the store here.
+        // Native intercepts are handled via onNativeMatch (which applies strict filtering).
+        // Keeping onIntercept diagnostic-only prevents noisy non-media URLs from polluting the store.
       } catch (e) {}
     };
   }
@@ -241,16 +383,48 @@ const ExtractorSourcesBottomSheet = ({
   const webviewRef = useRef<any>(null);
   const requestStartRef = useRef<number | null>(null);
   const lastKickProgressRef = useRef<number>(0);
+  // Timer ref used to fall back to enabling navigation when native intercept doesn't signal readiness.
+  const nativeReadyTimeoutRef = useRef<any>(null);
   // Keep last message from WebView for debugging UI
   const [lastWebviewMessage, setLastWebviewMessage] = useState<{
     videos: string[];
     subtitles: string[];
   } | null>(null);
+
+  // Hold whether the (native) WebView is mounted and ready to intercept requests.
+  // We mount the native view immediately when the bottom sheet opens but delay
+  // navigating to the requested URL until the native view has laid out so the
+  // native interceptors receive the nativeUrlRegex before network activity starts.
+  const [webviewReady, setWebviewReady] = useState<boolean>(false);
+  const [pendingSourceUrl, setPendingSourceUrl] = useState<string | null>(null);
+  // When a native intercept implementation is present, wait briefly after the native
+  // view has laid out to allow the native side to receive nativeUrlRegex before
+  // we navigate. readyToNavigate gates when the WebView will be sent the target URL.
+  const [readyToNavigate, setReadyToNavigate] = useState<boolean>(false);
+
   // Track which probe URLs we've already followed per original request
   // to avoid re-following the same iframe/page multiple times.
   const followedProbesRef = useRef<
     Record<string, {set: Set<string>; count: number}>
   >({});
+
+  useEffect(() => {
+    try {
+      const url = currentWebviewRequest ? currentWebviewRequest.url : null;
+      setPendingSourceUrl(url);
+      // Reset readiness flags so each new request waits for a fresh ready signal.
+      setWebviewReady(false);
+      setNativeInterceptReady(false);
+      // reset navigation gate until native view is ready to receive props
+      setReadyToNavigate(false);
+      // bump key so native view remounts with latest nativeUrlRegex when a new request arrives
+      setWebviewKey(k => k + 1);
+      try {
+        console.log('[ExtractorBottomSheet] pendingSourceUrl set:', url);
+      } catch (e) {}
+    } catch (e) {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentWebviewRequest]);
 
   useEffect(() => {
     if (currentWebviewRequest) {
@@ -276,6 +450,99 @@ const ExtractorSourcesBottomSheet = ({
       } catch (e) {}
     }
   }, [currentWebviewRequest]);
+
+  // Ensure the hidden WebView is mounted as soon as the bottom sheet opens so native interception
+  // can begin capturing requests immediately. Force a remount to apply the latest nativeUrlRegex.
+  useEffect(() => {
+    if (bottomSheetVisible) {
+      try {
+        console.log(
+          '[ExtractorBottomSheet] Bottom sheet opened — forcing WebView remount for interception',
+        );
+      } catch (e) {}
+      try {
+        setWebviewKey(k => k + 1);
+      } catch (e) {}
+    }
+  }, [bottomSheetVisible]);
+
+  // Listen for a readiness event emitted by the native InterceptWebView implementation
+  // so we can log and optionally kick the page into a state where requests will be intercepted.
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener(
+      'RNInterceptNativeReady',
+      (data: any) => {
+        try {
+          console.log('[ExtractorBottomSheet] RNInterceptNativeReady:', data);
+        } catch (e) {}
+        try {
+          // Mark native intercept as ready so we can navigate safely when using native interception.
+          setNativeInterceptReady(true);
+        } catch (e) {}
+        try {
+          // Clear any pending navigation timeout since native is ready.
+          try {
+            if (nativeReadyTimeoutRef.current) {
+              clearTimeout(nativeReadyTimeoutRef.current);
+              nativeReadyTimeoutRef.current = null;
+            }
+          } catch (e) {}
+        } catch (e) {}
+        try {
+          // Ping the webview so its bridge is active and we can confirm interception readiness.
+          if (webviewRef.current && webviewRef.current.injectJavaScript) {
+            webviewRef.current.injectJavaScript(
+              "(function(){ try{ window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({__ping:true,stage:'native-ready',ts:Date.now()})); }catch(e){} })(); true;",
+            );
+          }
+        } catch (e) {}
+        try {
+          // If the webview has already mounted and we have a pending URL, reload so the
+          // native component picks up the latest nativeUrlRegex before the target page loads.
+          const shouldReload =
+            webviewReady &&
+            pendingSourceUrl &&
+            interceptingAvailableRef &&
+            interceptingAvailableRef.current;
+          if (shouldReload && webviewRef.current && webviewRef.current.reload) {
+            try {
+              console.log(
+                '[ExtractorBottomSheet] Native intercept ready — reloading WebView to apply nativeUrlRegex before navigating',
+              );
+            } catch (e) {}
+            try {
+              webviewRef.current.reload();
+            } catch (e) {}
+          }
+        } catch (e) {}
+      },
+    );
+    return () => {
+      try {
+        sub.remove();
+      } catch (e) {}
+    };
+  }, [webviewReady, pendingSourceUrl]);
+
+  // When readyToNavigate flips true, trigger a reload so the WebView navigates
+  // after the native component has had a chance to receive nativeUrlRegex.
+  useEffect(() => {
+    try {
+      if (readyToNavigate && pendingSourceUrl) {
+        try {
+          console.log(
+            '[ExtractorBottomSheet] readyToNavigate true — reloading/navigating WebView',
+            pendingSourceUrl,
+          );
+        } catch (e) {}
+        try {
+          if (webviewRef.current && webviewRef.current.reload) {
+            webviewRef.current.reload();
+          }
+        } catch (e) {}
+      }
+    } catch (e) {}
+  }, [readyToNavigate, pendingSourceUrl]);
 
   // Handler for messages coming from the injected JS inside the WebView.
   // Enforces the configured waitMs by deferring processing of early messages.
@@ -355,19 +622,35 @@ const ExtractorSourcesBottomSheet = ({
                   2000,
                 );
                 try {
-                  receiveWebviewResponse(currentId!, {
-                    videos: Array.isArray(iframeResult?.videos)
-                      ? iframeResult.videos
-                      : [],
-                    subtitles: Array.isArray(iframeResult?.subtitles)
-                      ? iframeResult.subtitles
-                      : [],
-                    __meta: {
-                      postedAt: Date.now(),
-                      waitMs: 1500,
-                      stage: 'batch-follow',
-                    },
-                  } as any);
+                  const iframeVideos = Array.isArray(iframeResult?.videos)
+                    ? (iframeResult.videos as string[]).filter(v =>
+                        isAllowedMediaUrl(String(v)),
+                      )
+                    : [];
+                  const iframeSubs = Array.isArray(iframeResult?.subtitles)
+                    ? (iframeResult.subtitles as string[]).filter(s =>
+                        isAllowedMediaUrl(String(s)),
+                      )
+                    : [];
+                  // Only forward if we discovered media/subtitles
+                  if (iframeVideos.length > 0 || iframeSubs.length > 0) {
+                    receiveWebviewResponse(currentId!, {
+                      videos: iframeVideos,
+                      subtitles: iframeSubs,
+                      __meta: {
+                        postedAt: Date.now(),
+                        waitMs: 1500,
+                        stage: 'batch-follow',
+                      },
+                    } as any);
+                  } else {
+                    try {
+                      console.log(
+                        '[ExtractorBottomSheet] batch-follow returned no media (filtered out non-media):',
+                        u,
+                      );
+                    } catch (e) {}
+                  }
                 } catch (e) {}
               } catch (e) {
                 try {
@@ -534,17 +817,34 @@ const ExtractorSourcesBottomSheet = ({
                           )
                             ? iframeResult.subtitles
                             : [];
-                          // Use receiveWebviewResponse to feed these results back to the store under original id.
-                          // Attach meta so the store can enforce waitMs correctly.
-                          receiveWebviewResponse(currentId, {
-                            videos: mergedVideos,
-                            subtitles: mergedSubs,
-                            __meta: {
-                              postedAt: Date.now(),
-                              waitMs: 1500,
-                              stage: 'iframe-follow',
-                            },
-                          } as any);
+                          // Filter merged results to media-only before forwarding
+                          const filteredMergedVideos = (
+                            mergedVideos as string[]
+                          ).filter(v => isAllowedMediaUrl(String(v)));
+                          const filteredMergedSubs = (
+                            mergedSubs as string[]
+                          ).filter(s => isAllowedMediaUrl(String(s)));
+                          if (
+                            filteredMergedVideos.length > 0 ||
+                            filteredMergedSubs.length > 0
+                          ) {
+                            receiveWebviewResponse(currentId, {
+                              videos: filteredMergedVideos,
+                              subtitles: filteredMergedSubs,
+                              __meta: {
+                                postedAt: Date.now(),
+                                waitMs: 1500,
+                                stage: 'iframe-follow',
+                              },
+                            } as any);
+                          } else {
+                            try {
+                              console.log(
+                                '[ExtractorBottomSheet] iframe-follow produced no media after filtering:',
+                                probeAbs,
+                              );
+                            } catch (e) {}
+                          }
                         } catch (e) {
                           try {
                             console.warn(
@@ -573,19 +873,53 @@ const ExtractorSourcesBottomSheet = ({
           return;
         }
 
-        const videos = Array.isArray(payload.videos) ? payload.videos : [];
-        const subtitles = Array.isArray(payload.subtitles)
+        // Normalize and strictly filter discovered URLs so we only forward well-known media/subtitle assets.
+        const rawVideos = Array.isArray(payload.videos) ? payload.videos : [];
+        const rawSubs = Array.isArray(payload.subtitles)
           ? payload.subtitles
           : [];
+        const videos = rawVideos.filter((u: any) => {
+          try {
+            return isAllowedMediaUrl(String(u));
+          } catch (e) {
+            return false;
+          }
+        });
+        const subtitles = rawSubs.filter((u: any) => {
+          try {
+            return isAllowedMediaUrl(String(u));
+          } catch (e) {
+            return false;
+          }
+        });
         try {
-          console.log('[ExtractorBottomSheet] WebView posted message:', {
-            videos,
-            subtitles,
-            meta: payload.__meta,
-          });
+          console.log(
+            '[ExtractorBottomSheet] WebView posted message (filtered):',
+            {
+              rawVideos,
+              rawSubs,
+              videos,
+              subtitles,
+              meta: payload.__meta,
+            },
+          );
         } catch (e) {}
-        // store last message for visible debug panel
+        // store last message for visible debug panel (show filtered results)
         setLastWebviewMessage({videos, subtitles});
+
+        // IMPORTANT: If native interception is available, do NOT accept JS-discovered
+        // video/subtitle payloads. Rely exclusively on nativeUrlRegex + onNativeMatch
+        // to report media URLs. This prevents the injected JS from preempting or
+        // duplicating native-matched results.
+        if (interceptingAvailableRef.current && nativeInterceptReady) {
+          try {
+            console.log(
+              '[ExtractorBottomSheet] Native interception available — ignoring JS-discovered videos/subtitles. Waiting for native matches.',
+            );
+          } catch (e) {}
+          return;
+        }
+
         if (currentWebviewRequest && currentWebviewRequest.id) {
           // send response to store which will resolve the pending promise
           // Include the __meta payload so the store can enforce the correct
@@ -600,7 +934,7 @@ const ExtractorSourcesBottomSheet = ({
                     postedAt: Date.now(),
                     waitMs:
                       (currentWebviewRequest && currentWebviewRequest.waitMs) ||
-                      1500,
+                      10000,
                   },
           } as any);
         }
@@ -617,7 +951,7 @@ const ExtractorSourcesBottomSheet = ({
     try {
       const payload = JSON.parse(event.nativeEvent?.data || '{}');
       const wait =
-        (currentWebviewRequest && currentWebviewRequest.waitMs) || 1500;
+        (currentWebviewRequest && currentWebviewRequest.waitMs) || 10000;
       const start = requestStartRef.current || Date.now();
       const elapsed = Date.now() - start;
       if (elapsed < wait) {
@@ -668,7 +1002,7 @@ const ExtractorSourcesBottomSheet = ({
           __meta: {
             postedAt: Date.now(),
             waitMs:
-              (currentWebviewRequest && currentWebviewRequest.waitMs) || 1500,
+              (currentWebviewRequest && currentWebviewRequest.waitMs) || 10000,
           },
         });
       }
@@ -888,8 +1222,11 @@ const ExtractorSourcesBottomSheet = ({
   // Build injected JS string with a configurable wait time (ms).
   // Ensure the page waits until it has fully loaded, then wait `ms`
   // milliseconds before posting extraction results back to RN.
-  const buildInjectedJS = (waitMs: number = 1500) => {
-    const ms = Number(waitMs) || 1500;
+  const buildInjectedJS = (
+    waitMs: number = 1500,
+    suppressProbes: boolean = false,
+  ) => {
+    const ms = Number(waitMs) || 10000;
     return `
     (function() {
       try {
@@ -903,13 +1240,13 @@ const ExtractorSourcesBottomSheet = ({
               subtitles: [],
               __meta: { postedAt: Date.now(), waitMs: 0, stage: String(stage||'immediate') }
             });
-            if (window.bridge && typeof window.bridge.postWebviewPayload === 'function') {
+            if (false && false && window.bridge && typeof window.bridge.postWebviewPayload === 'function') {
               try { window.bridge.postWebviewPayload(payload); } catch(e){}
-            } else if (window.ReactNativeWebView && typeof window.ReactNativeWebView.postMessage === 'function') {
+            } else if (false && window.ReactNativeWebView && typeof window.ReactNativeWebView.postMessage === 'function') {
               try { window.ReactNativeWebView.postMessage(payload); } catch(e){}
-            } else if (window.webkit && window.webkit.messageHandlers && typeof window.webkit.messageHandlers.reactNativeWebView === 'object' && typeof window.webkit.messageHandlers.reactNativeWebView.postMessage === 'function') {
+            } else if (false && window.webkit && window.webkit.messageHandlers && typeof window.webkit.messageHandlers.reactNativeWebView === 'object' && typeof window.webkit.messageHandlers.reactNativeWebView.postMessage === 'function') {
               try { window.webkit.messageHandlers.reactNativeWebView.postMessage(payload); } catch(e){}
-            } else if (typeof window.postMessage === 'function') {
+            } else if (false && typeof window.postMessage === 'function') {
               try { window.postMessage(payload); } catch(e){}
             }
           } catch(e){}
@@ -920,13 +1257,13 @@ const ExtractorSourcesBottomSheet = ({
             injected: true,
             __meta: { postedAt: Date.now(), stage: 'init' }
           });
-          if (window.bridge && typeof window.bridge.postWebviewPayload === 'function') {
+          if (false && false && window.bridge && typeof window.bridge.postWebviewPayload === 'function') {
             try { window.bridge.postWebviewPayload(_init); } catch(e){}
-          } else if (window.ReactNativeWebView && typeof window.ReactNativeWebView.postMessage === 'function') {
+          } else if (false && window.ReactNativeWebView && typeof window.ReactNativeWebView.postMessage === 'function') {
             try { window.ReactNativeWebView.postMessage(_init); } catch(e){}
-          } else if (window.webkit && window.webkit.messageHandlers && typeof window.webkit.messageHandlers.reactNativeWebView === 'object' && typeof window.webkit.messageHandlers.reactNativeWebView.postMessage === 'function') {
+          } else if (false && window.webkit && window.webkit.messageHandlers && typeof window.webkit.messageHandlers.reactNativeWebView === 'object' && typeof window.webkit.messageHandlers.reactNativeWebView.postMessage === 'function') {
             try { window.webkit.messageHandlers.reactNativeWebView.postMessage(_init); } catch(e){}
-          } else if (typeof window.postMessage === 'function') {
+          } else if (false && typeof window.postMessage === 'function') {
             try { window.postMessage(_init); } catch(e){}
           }
         } catch(e){}
@@ -957,13 +1294,13 @@ const ExtractorSourcesBottomSheet = ({
                 isSubtitle: isSubtitle,
                 __meta: { postedAt: Date.now(), waitMs: ${ms}, stage: 'probe' },
               });
-              if (window.bridge && typeof window.bridge.postWebviewPayload === 'function') {
+              if (false && false && window.bridge && typeof window.bridge.postWebviewPayload === 'function') {
                 try { window.bridge.postWebviewPayload(_msg); } catch(e){}
-              } else if (window.ReactNativeWebView && typeof window.ReactNativeWebView.postMessage === 'function') {
+              } else if (false && window.ReactNativeWebView && typeof window.ReactNativeWebView.postMessage === 'function') {
                 try { window.ReactNativeWebView.postMessage(_msg); } catch(e){}
-              } else if (window.webkit && window.webkit.messageHandlers && typeof window.webkit.messageHandlers.reactNativeWebView === 'object' && typeof window.webkit.messageHandlers.reactNativeWebView.postMessage === 'function') {
+              } else if (false && window.webkit && window.webkit.messageHandlers && typeof window.webkit.messageHandlers.reactNativeWebView === 'object' && typeof window.webkit.messageHandlers.reactNativeWebView.postMessage === 'function') {
                 try { window.webkit.messageHandlers.reactNativeWebView.postMessage(_msg); } catch(e){}
-              } else if (typeof window.postMessage === 'function') {
+              } else if (false && typeof window.postMessage === 'function') {
                 try { window.postMessage(_msg); } catch(e){}
               }
             } catch (e) {}
@@ -1032,13 +1369,13 @@ const ExtractorSourcesBottomSheet = ({
                   method: method,
                   __meta: { postedAt: Date.now(), waitMs: ${ms}, stage: 'probe' }
                 });
-                if (window.bridge && typeof window.bridge.postWebviewPayload === 'function') {
+                if (false && false && window.bridge && typeof window.bridge.postWebviewPayload === 'function') {
                   try { window.bridge.postWebviewPayload(probePayload); } catch(e){}
-                } else if (window.ReactNativeWebView && typeof window.ReactNativeWebView.postMessage === 'function') {
+                } else if (false && window.ReactNativeWebView && typeof window.ReactNativeWebView.postMessage === 'function') {
                   try { window.ReactNativeWebView.postMessage(probePayload); } catch(e){}
-                } else if (window.webkit && window.webkit.messageHandlers && typeof window.webkit.messageHandlers.reactNativeWebView === 'object' && typeof window.webkit.messageHandlers.reactNativeWebView.postMessage === 'function') {
+                } else if (false && window.webkit && window.webkit.messageHandlers && typeof window.webkit.messageHandlers.reactNativeWebView === 'object' && typeof window.webkit.messageHandlers.reactNativeWebView.postMessage === 'function') {
                   try { window.webkit.messageHandlers.reactNativeWebView.postMessage(probePayload); } catch(e){}
-                } else if (typeof window.postMessage === 'function') {
+                } else if (false && typeof window.postMessage === 'function') {
                   try { window.postMessage(probePayload); } catch(e){}
                 }
               } catch(e){}
@@ -1062,13 +1399,13 @@ const ExtractorSourcesBottomSheet = ({
                 bodyPreview: (body && body.length) ? String(body).slice(0,128) : null,
                 __meta: { postedAt: Date.now(), waitMs: ${ms}, stage: 'probe' }
               });
-              if (window.bridge && typeof window.bridge.postWebviewPayload === 'function') {
+              if (false && false && window.bridge && typeof window.bridge.postWebviewPayload === 'function') {
                 try { window.bridge.postWebviewPayload(probePayload); } catch(e){}
-              } else if (window.ReactNativeWebView && typeof window.ReactNativeWebView.postMessage === 'function') {
+              } else if (false && window.ReactNativeWebView && typeof window.ReactNativeWebView.postMessage === 'function') {
                 try { window.ReactNativeWebView.postMessage(probePayload); } catch(e){}
-              } else if (window.webkit && window.webkit.messageHandlers && typeof window.webkit.messageHandlers.reactNativeWebView === 'object' && typeof window.webkit.messageHandlers.reactNativeWebView.postMessage === 'function') {
+              } else if (false && window.webkit && window.webkit.messageHandlers && typeof window.webkit.messageHandlers.reactNativeWebView === 'object' && typeof window.webkit.messageHandlers.reactNativeWebView.postMessage === 'function') {
                 try { window.webkit.messageHandlers.reactNativeWebView.postMessage(probePayload); } catch(e){}
-              } else if (typeof window.postMessage === 'function') {
+              } else if (false && typeof window.postMessage === 'function') {
                 try { window.postMessage(probePayload); } catch(e){}
               }
             } catch(e){}
@@ -1386,13 +1723,13 @@ const ExtractorSourcesBottomSheet = ({
               subtitles: found.subtitles,
               __meta: { postedAt: Date.now(), waitMs: ${ms}, stage: stage }
             });
-            if (window.bridge && typeof window.bridge.postWebviewPayload === 'function') {
+            if (false && false && window.bridge && typeof window.bridge.postWebviewPayload === 'function') {
               try { window.bridge.postWebviewPayload(_msg); } catch(e){}
-            } else if (window.ReactNativeWebView && typeof window.ReactNativeWebView.postMessage === 'function') {
+            } else if (false && window.ReactNativeWebView && typeof window.ReactNativeWebView.postMessage === 'function') {
               try { window.ReactNativeWebView.postMessage(_msg); } catch(e){}
-            } else if (window.webkit && window.webkit.messageHandlers && typeof window.webkit.messageHandlers.reactNativeWebView === 'object' && typeof window.webkit.messageHandlers.reactNativeWebView.postMessage === 'function') {
+            } else if (false && window.webkit && window.webkit.messageHandlers && typeof window.webkit.messageHandlers.reactNativeWebView === 'object' && typeof window.webkit.messageHandlers.reactNativeWebView.postMessage === 'function') {
               try { window.webkit.messageHandlers.reactNativeWebView.postMessage(_msg); } catch(e){}
-            } else if (typeof window.postMessage === 'function') {
+            } else if (false && typeof window.postMessage === 'function') {
               try { window.postMessage(_msg); } catch(e){}
             }
           } catch(e){}
@@ -1620,13 +1957,13 @@ const ExtractorSourcesBottomSheet = ({
       } catch(e) {
         try {
           const _msg = JSON.stringify({videos: [], subtitles: [], __meta: {error: true}});
-          if (window.bridge && typeof window.bridge.postWebviewPayload === 'function') {
+          if (false && false && window.bridge && typeof window.bridge.postWebviewPayload === 'function') {
             try { window.bridge.postWebviewPayload(_msg); } catch(e){}
-          } else if (window.ReactNativeWebView && typeof window.ReactNativeWebView.postMessage === 'function') {
+          } else if (false && window.ReactNativeWebView && typeof window.ReactNativeWebView.postMessage === 'function') {
             try { window.ReactNativeWebView.postMessage(_msg); } catch(e){}
-          } else if (window.webkit && window.webkit.messageHandlers && typeof window.webkit.messageHandlers.reactNativeWebView === 'object' && typeof window.webkit.messageHandlers.reactNativeWebView.postMessage === 'function') {
+          } else if (false && window.webkit && window.webkit.messageHandlers && typeof window.webkit.messageHandlers.reactNativeWebView === 'object' && typeof window.webkit.messageHandlers.reactNativeWebView.postMessage === 'function') {
             try { window.webkit.messageHandlers.reactNativeWebView.postMessage(_msg); } catch(e){}
-          } else if (typeof window.postMessage === 'function') {
+          } else if (false && typeof window.postMessage === 'function') {
             try { window.postMessage(_msg); } catch(e){}
           }
         } catch(e){}
@@ -1636,8 +1973,11 @@ const ExtractorSourcesBottomSheet = ({
     `;
   };
   /* Added fallback working injected script (preserves original behavior) */
-  const buildInjectedJS_v2 = (waitMs: number = 1500) => {
-    const ms = Number(waitMs) || 1500;
+  const buildInjectedJS_v2 = (
+    waitMs: number = 10000,
+    suppressProbes: boolean = false,
+  ) => {
+    const ms = Number(waitMs) || 10000;
     return `
     (function() {
       try {
@@ -1669,9 +2009,9 @@ const ExtractorSourcesBottomSheet = ({
                 isSubtitle: isSubtitle,
                 __meta: { postedAt: Date.now(), waitMs: ${ms}, stage: 'probe' },
               });
-              if (window.bridge && typeof window.bridge.postWebviewPayload === 'function') {
+              if (false && false && window.bridge && typeof window.bridge.postWebviewPayload === 'function') {
                 try { window.bridge.postWebviewPayload(_msg); } catch(e){}
-              } else if (window.ReactNativeWebView && typeof window.ReactNativeWebView.postMessage === 'function') {
+              } else if (false && window.ReactNativeWebView && typeof window.ReactNativeWebView.postMessage === 'function') {
                 try { window.ReactNativeWebView.postMessage(_msg); } catch(e){}
               }
             } catch (e) {}
@@ -1819,9 +2159,9 @@ const ExtractorSourcesBottomSheet = ({
               subtitles: found.subtitles,
               __meta: { postedAt: Date.now(), waitMs: ${ms}, stage: stage }
             });
-            if (window.bridge && typeof window.bridge.postWebviewPayload === 'function') {
+            if (false && false && window.bridge && typeof window.bridge.postWebviewPayload === 'function') {
               try { window.bridge.postWebviewPayload(_msg); } catch(e){}
-            } else if (window.ReactNativeWebView && typeof window.ReactNativeWebView.postMessage === 'function') {
+            } else if (false && window.ReactNativeWebView && typeof window.ReactNativeWebView.postMessage === 'function') {
               try { window.ReactNativeWebView.postMessage(_msg); } catch(e){}
             }
           } catch(e){}
@@ -1861,9 +2201,9 @@ const ExtractorSourcesBottomSheet = ({
       } catch(e) {
         try {
           const _msg = JSON.stringify({videos: [], subtitles: [], __meta: {error: true}});
-          if (window.bridge && typeof window.bridge.postWebviewPayload === 'function') {
+          if (false && false && window.bridge && typeof window.bridge.postWebviewPayload === 'function') {
             try { window.bridge.postWebviewPayload(_msg); } catch(e){}
-          } else if (window.ReactNativeWebView && typeof window.ReactNativeWebView.postMessage === 'function') {
+          } else if (false && window.ReactNativeWebView && typeof window.ReactNativeWebView.postMessage === 'function') {
             try { window.ReactNativeWebView.postMessage(_msg); } catch(e){}
           }
         } catch(e){}
@@ -1872,6 +2212,157 @@ const ExtractorSourcesBottomSheet = ({
     true;
   `;
   };
+
+  // Minimal injected script that emits immediate discovery messages during the wait window
+  const buildInjectedJS_minimal = (
+    waitMs: number = 10000,
+    suppressProbes: boolean = false,
+  ) => {
+    const ms = Number(waitMs) || 10000;
+    return `
+    (function(){
+      try{
+        const found = { videos: [], subtitles: [] };
+
+        function pushIfUnique(arr, v){
+          try{
+            if(!v) return false;
+            const s = String(v);
+            if(arr.indexOf(s) === -1){
+              arr.push(s);
+              return true;
+            }
+            return false;
+          }catch(e){ return false; }
+        }
+
+        function postDiscovery(videos, subtitles, stage){
+          try{
+            const payload = {
+              videos: Array.isArray(videos) ? videos : [],
+              subtitles: Array.isArray(subtitles) ? subtitles : [],
+              __meta: { postedAt: Date.now(), waitMs: ${ms}, stage: stage || 'found' }
+            };
+            const msg = JSON.stringify(payload);
+            if (window.bridge && typeof window.bridge.postWebviewPayload === 'function') {
+              try{ window.bridge.postWebviewPayload(msg); } catch(e){}
+            } else if (window.ReactNativeWebView && typeof window.ReactNativeWebView.postMessage === 'function') {
+              try{ window.ReactNativeWebView.postMessage(msg); } catch(e){}
+            }
+          }catch(e){}
+        }
+
+        function inspectMediaElements(emitImmediate){
+          try{
+            const vids = Array.from(document.querySelectorAll('video, source, track'));
+            vids.forEach(el => {
+              try{
+                const src = (el && (el.currentSrc || el.src)) || (el.getAttribute && el.getAttribute('src'));
+                if(src){
+                  const added = pushIfUnique(found.videos, src);
+                  if(emitImmediate && added){
+                    postDiscovery([src], [], 'immediate-video');
+                  }
+                }
+                try {
+                  if (el.tagName && String(el.tagName).toLowerCase() === 'track') {
+                    const t = (el && (el.src || (el.getAttribute && el.getAttribute('src'))));
+                    if(t && /\.(srt|vtt|ass|ssa|smi)(?:[?#]|$)/i.test(t)){
+                      const addedSub = pushIfUnique(found.subtitles, t);
+                      if(emitImmediate && addedSub){
+                        postDiscovery([], [t], 'immediate-subtitle');
+                      }
+                    }
+                  }
+                } catch(e){}
+              }catch(e){}
+            });
+
+            // Collect iframe src attributes (do NOT probe internals)
+            try{
+              const iframes = Array.from(document.querySelectorAll('iframe'));
+              iframes.forEach(f => {
+                try{
+                  const fsrc = f && (f.src || (f.getAttribute && f.getAttribute('src')));
+                  if(fsrc){
+                    const added = pushIfUnique(found.videos, fsrc);
+                    if(emitImmediate && added){
+                      postDiscovery([fsrc], [], 'immediate-iframe');
+                    }
+                  }
+                }catch(e){}
+              });
+            }catch(e){}
+          }catch(e){}
+        }
+
+        // Final consolidated post after waitMs
+        function postFinal(){
+          try{
+            inspectMediaElements(false);
+            const payload = {
+              videos: found.videos,
+              subtitles: found.subtitles,
+              __meta: { postedAt: Date.now(), waitMs: ${ms}, stage: 'final' }
+            };
+            const msg = JSON.stringify(payload);
+            if (window.bridge && typeof window.bridge.postWebviewPayload === 'function') {
+              try{ window.bridge.postWebviewPayload(msg); } catch(e){}
+            } else if (window.ReactNativeWebView && typeof window.ReactNativeWebView.postMessage === 'function') {
+              try{ window.ReactNativeWebView.postMessage(msg); } catch(e){}
+            }
+          }catch(e){}
+        }
+
+        // Try to autoplay visible videos to trigger lazy loads
+        function attemptAutoPlay(){
+          try{
+            const videos = Array.from(document.querySelectorAll('video'));
+            videos.forEach(v=>{
+              try{
+                const rect = v.getBoundingClientRect && v.getBoundingClientRect();
+                const visible = rect ? (rect.width>20 && rect.height>20) : true;
+                if(visible && typeof v.play === 'function'){
+                  try{ v.play().catch(()=>{}); } catch(e){}
+                }
+              }catch(e){}
+            });
+          }catch(e){}
+        }
+
+        // Initial quick scan and emit immediate discoveries
+        try{ inspectMediaElements(true); } catch(e){}
+
+        if(document.readyState === 'complete'){
+          try{ attemptAutoPlay(); }catch(e){}
+          setTimeout(postFinal, ${ms});
+        } else {
+          window.addEventListener('load', function(){
+            try{ inspectMediaElements(true); } catch(e){}
+            try{ attemptAutoPlay(); }catch(e){}
+            setTimeout(postFinal, ${ms});
+          }, {once:true});
+          // Hard fallback
+          setTimeout(postFinal, ${ms * 3});
+        }
+
+        // Observe DOM mutations during the wait window and emit discoveries as they appear
+        try{
+          const mo = new MutationObserver(mutations => {
+            try{
+              inspectMediaElements(true);
+            }catch(e){}
+          });
+          try{ mo.observe(document, { childList: true, subtree: true }); } catch(e){}
+        }catch(e){}
+
+      }catch(e){}
+    })();
+    true;
+  `;
+  };
+  const injectedNoProbePrefix =
+    'try{ window.__autoplay_block=true; window.__nativeInterceptReady=false; function inspectUrl(u){return;} }catch(e){};true;';
 
   return (
     <>
@@ -1967,7 +2458,6 @@ const ExtractorSourcesBottomSheet = ({
           )}
         </BottomSheetView>
       </BottomSheet>
-
       {/* Player choice dialog */}
       <Portal>
         <Dialog
@@ -2011,30 +2501,102 @@ const ExtractorSourcesBottomSheet = ({
           </Dialog.Actions>
         </Dialog>
       </Portal>
-
+      {/* Using injectedNoProbePrefix (declared above) to disable per-request probe posting in the injected script */}
       {/* Hidden WebView for extraction */}
-      {currentWebviewRequest ? (
+      {bottomSheetVisible ? (
         <View style={{height: 150, width: '100%'}}>
           <WebViewComponent
             key={webviewKey}
             {...webviewExtraProps}
             ref={webviewRef}
-            source={{uri: currentWebviewRequest.url}}
+            // Navigate to the requested URL once the native WebView has been laid out.
+            // We no longer block navigation waiting for the native readiness event,
+            // because that can leave the WebView blank on some devices. Native interception
+            // will still report matches when it becomes available.
+            source={
+              webviewReady && readyToNavigate && pendingSourceUrl
+                ? {uri: pendingSourceUrl}
+                : {uri: 'about:blank'}
+            }
             javaScriptEnabled={true}
-            mediaPlaybackRequiresUserAction={false}
+            // Prevent autoplay before native interception is ready.
+            mediaPlaybackRequiresUserAction={!webviewReady}
+            // onLayout indicates the native view has mounted; enable navigation when mounted.
+            onLayout={() => {
+              try {
+                if (!webviewReady) {
+                  setWebviewReady(true);
+                  try {
+                    console.log(
+                      '[ExtractorBottomSheet] WebView onLayout: native view mounted',
+                    );
+                  } catch (e) {}
+                  // Schedule navigation only after a short delay when a native intercepting
+                  // implementation exists so the native side receives nativeUrlRegex prop first.
+                  try {
+                    if (
+                      interceptingAvailableRef &&
+                      interceptingAvailableRef.current
+                    ) {
+                      // clear any previous timeout
+                      try {
+                        if (nativeReadyTimeoutRef.current) {
+                          clearTimeout(nativeReadyTimeoutRef.current);
+                        }
+                      } catch (e) {}
+                      nativeReadyTimeoutRef.current = setTimeout(() => {
+                        try {
+                          setReadyToNavigate(true);
+                          try {
+                            console.log(
+                              '[ExtractorBottomSheet] readyToNavigate -> true (post-native-mount delay)',
+                            );
+                          } catch (e) {}
+                        } catch (e) {}
+                      }, 150);
+                    } else {
+                      setReadyToNavigate(true);
+                    }
+                  } catch (e) {}
+                  // Navigation will be performed when readyToNavigate becomes true.
+                }
+              } catch (e) {}
+            }}
             allowsInlineMediaPlayback={true}
             allowsFullscreenVideo={true}
             javaScriptCanOpenWindowsAutomatically={true}
             // Run lighter injected script (autoplay/iframe/adblock heuristics) — do not
             // use network overrides when native interception is available.
-            injectedJavaScriptBeforeContentLoaded={buildInjectedJS_v2(
-              (currentWebviewRequest && currentWebviewRequest.waitMs) || 1500,
-            )}
+            injectedJavaScriptBeforeContentLoaded={
+              interceptingAvailableRef.current
+                ? injectedNoProbePrefix +
+                  buildInjectedJS_minimal(
+                    (currentWebviewRequest && currentWebviewRequest.waitMs) ||
+                      10000,
+                    interceptingAvailableRef.current,
+                  )
+                : buildInjectedJS_minimal(
+                    (currentWebviewRequest && currentWebviewRequest.waitMs) ||
+                      10000,
+                    interceptingAvailableRef.current,
+                  )
+            }
             injectedJavaScriptBeforeContentLoadedForMainFrameOnly={false}
             // Also keep injectedJavaScript for extra post-detection once page loads
-            injectedJavaScript={buildInjectedJS_v2(
-              (currentWebviewRequest && currentWebviewRequest.waitMs) || 1500,
-            )}
+            injectedJavaScript={
+              interceptingAvailableRef.current
+                ? injectedNoProbePrefix +
+                  buildInjectedJS_minimal(
+                    (currentWebviewRequest && currentWebviewRequest.waitMs) ||
+                      10000,
+                    interceptingAvailableRef.current,
+                  )
+                : buildInjectedJS_minimal(
+                    (currentWebviewRequest && currentWebviewRequest.waitMs) ||
+                      10000,
+                    interceptingAvailableRef.current,
+                  )
+            }
             injectedJavaScriptForMainFrameOnly={false}
             onMessage={handleWebviewMessage}
             originWhitelist={['*']}
@@ -2054,10 +2616,13 @@ const ExtractorSourcesBottomSheet = ({
                 if (webviewRef.current && webviewRef.current.injectJavaScript) {
                   const wait =
                     (currentWebviewRequest && currentWebviewRequest.waitMs) ||
-                    1500;
+                    10000;
                   try {
                     webviewRef.current.injectJavaScript(
-                      buildInjectedJS_v2(wait),
+                      buildInjectedJS_minimal(
+                        wait,
+                        interceptingAvailableRef.current,
+                      ),
                     );
                   } catch (e) {}
                   try {
@@ -2093,10 +2658,13 @@ const ExtractorSourcesBottomSheet = ({
                   ) {
                     const wait2 =
                       (currentWebviewRequest && currentWebviewRequest.waitMs) ||
-                      1500;
+                      10000;
                     try {
                       webviewRef.current.injectJavaScript(
-                        buildInjectedJS_v2(wait2),
+                        buildInjectedJS_minimal(
+                          wait2,
+                          interceptingAvailableRef.current,
+                        ),
                       );
                     } catch (e) {}
                     try {
@@ -2119,7 +2687,7 @@ const ExtractorSourcesBottomSheet = ({
               try {
                 const wait =
                   (currentWebviewRequest && currentWebviewRequest.waitMs) ||
-                  1500;
+                  10000;
                 try {
                   console.log(
                     '[ExtractorBottomSheet] onLoadEnd (native) — scheduling inject after waitMs:',
@@ -2168,7 +2736,10 @@ const ExtractorSourcesBottomSheet = ({
                     ) {
                       try {
                         webviewRef.current.injectJavaScript(
-                          buildInjectedJS_v2(wait),
+                          buildInjectedJS_minimal(
+                            wait,
+                            interceptingAvailableRef.current,
+                          ),
                         );
                       } catch (e) {}
                       try {
@@ -2179,7 +2750,7 @@ const ExtractorSourcesBottomSheet = ({
                       // Also enumerate likely player links/iframes and send back to RN for batch-follow
                       try {
                         webviewRef.current.injectJavaScript(
-                          "(function(){try{var base=location.href;var urls=[];var q=document.querySelectorAll('iframe, a, link');for(var i=0;i<q.length;i++){try{var el=q[i];var s=el.src||el.href||el.getAttribute('src')||el.getAttribute('href');if(!s) continue; try{s=new URL(s, base).toString();}catch(e){} if(/^https?:/i.test(s)) urls.push(s);}catch(e){}} try{window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({probeBatch: urls, __meta:{postedAt:Date.now(),stage:'batch'}}));}catch(e){}}catch(e){}})(); true;",
+                          "(function(){ try{ /* probeBatch suppressed to avoid per-request probing */ window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({__ping:true,stage:'batch-suppressed',ts:Date.now()})); }catch(e){} })(); true;",
                         );
                       } catch (e) {}
                       try {

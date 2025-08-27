@@ -74,9 +74,10 @@ export default function App() {
       setExtractorBottomSheetVisible(true);
       const result = await ExtractorService.extract({
         type: MediaType.ExtractorVideo,
-        url: 'https://gogoanimez.to/naruto-shippuden-episode-420/',
+        url: 'https://9animetv.to/watch/naruto-677?ep=12352',
+        // url: 'https://gogoanimez.to/naruto-shippuden-episode-420/',
         // url: 'https://mysoap2day.net/movie/boruto-naruto-the-movie-2015-x13472011/watching/',
-        // url: 'https://gogoanimes.fi/naruto-episode-1#',
+        // url: 'https://gogoanimes.fi/one-hundred-thousand-years-of-qi-refining-episode-250',
         name: 'test',
         iconUrl: 'https://www.svgrepo.com/show/433942/gear.svg',
       } as ExtractorVideo);

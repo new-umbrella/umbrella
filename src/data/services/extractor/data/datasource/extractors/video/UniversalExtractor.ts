@@ -49,54 +49,74 @@ class UniversalExtractor implements Extractor {
           ? useExtractorServiceStore.getState()
           : useExtractorServiceStore;
 
-      // Detect availability of react-native-intercepting-webview (installed as requested).
-      // We don't directly control the UI WebView from this non-UI module, but log
-      // presence for debugging / telemetry so the rest of the pipeline can use it.
+      // Detect availability of the in-repo InterceptWebView component so the
+      // hidden WebView can leverage native-like interception, adblock and autoplay.
+      // Require the local module at runtime so bundlers won't fail if it's absent.
       let interceptingWebviewAvailable = false;
       try {
-        // Use require so bundlers don't fail at static-eval time if the package is absent.
-        // This is intentionally non-fatal.
         // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const _mod = require('react-native-intercepting-webview');
-        if (_mod) interceptingWebviewAvailable = true;
+        const localMod = require('../../../../../../../core/shared/components/intercepting-webview');
+        if (
+          localMod &&
+          (localMod.InterceptWebView || localMod.default || localMod)
+        ) {
+          interceptingWebviewAvailable = true;
+        }
       } catch (e) {
-        // ignore - optional dependency
+        // ignore - optional local component
       }
-      if (interceptingWebviewAvailable) {
-        try {
-          console.log(
-            '[UniversalExtractor] react-native-intercepting-webview is available — hidden WebView may intercept requests natively',
-          );
-        } catch (e) {}
-      } else {
-        try {
-          console.log(
-            '[UniversalExtractor] react-native-intercepting-webview not found — falling back to message-based detection via hidden WebView',
-          );
-        } catch (e) {}
-      }
+      try {
+        console.log(
+          '[UniversalExtractor] InterceptWebView available:',
+          interceptingWebviewAvailable,
+        );
+      } catch (e) {}
 
       // If the store exposes sendWebviewRequest, use it. It will set a
       // currentWebviewRequest in the store and return a Promise that resolves
       // when the hidden WebView posts back the discovered URLs. The hidden
-      // WebView now supports posting via webview-bridge (preferred) or the
-      // legacy window.ReactNativeWebView.postMessage — the injected script
-      // in the ExtractSourcesBottomSheet will choose the available API.
+      // WebView (ExtractSourcesBottomSheet) supports InterceptWebView which provides
+      // adblock/autoplay/native interception when available.
       if (store && typeof store.sendWebviewRequest === 'function') {
+        // Ensure the bottom sheet is visible (it hosts the hidden WebView) so interception works.
+        try {
+          if (typeof store.setBottomSheetVisible === 'function') {
+            store.setBottomSheetVisible(true);
+          }
+        } catch (e) {}
         // Request the webview to load the page and return any discovered
         // video/subtitle URLs. Ensure timeout is larger than waitMs so the
         // webview has time to load and post results.
         const timeoutMs = 20000; // give the webview up to 20s by default
         const waitMs = 10000; // let the page run its own detection for ~1.5s
         console.log(
-          '[UniversalExtractor] sendWebviewRequest (using webview-bridge if available) url, timeoutMs, waitMs:',
+          '[UniversalExtractor] sendWebviewRequest (using InterceptWebView when available) url, timeoutMs, waitMs:',
           data.url,
           timeoutMs,
           waitMs,
         );
+        // Build a nativeUrlRegex string covering video+subtitle extensions so
+        // InterceptWebView's native matcher can report matches immediately.
+        const allExts = [
+          ...(this.allVideoFileExtensions || []),
+          ...(this.allSubtitleFileExtensions || []),
+        ]
+          .map((s: string) =>
+            String(s || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+          )
+          .filter(Boolean)
+          .join('|');
+        const nativeUrlRegex =
+          allExts && allExts.length ? `\\.(?:${allExts})(?:[?#]|$)` : undefined;
+
         // First attempt
         let result: {videos: string[]; subtitles: string[]} =
-          await store.sendWebviewRequest(data.url, timeoutMs, waitMs);
+          await store.sendWebviewRequest(
+            data.url,
+            timeoutMs,
+            waitMs,
+            nativeUrlRegex,
+          );
         console.log('[UniversalExtractor] First attempt result:', result);
         // If we didn't find any videos, do one retry with a longer wait (still bounded).
         if (
@@ -116,6 +136,7 @@ class UniversalExtractor implements Extractor {
               data.url,
               retryTimeoutMs,
               retryWaitMs,
+              nativeUrlRegex,
             );
             console.log('[UniversalExtractor] Retry result:', result);
           } catch (retryErr) {

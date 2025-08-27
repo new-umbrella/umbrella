@@ -22,6 +22,8 @@ interface WebviewRequest {
   id: string;
   url: string;
   waitMs?: number;
+  // Optional nativeUrlRegex requested by the caller (string form expected by native view)
+  nativeUrlRegex?: string;
   // Timestamp (ms) when the request was created; used to enforce minimum wait
   startTime?: number;
 }
@@ -48,6 +50,7 @@ interface ExtractorServiceState {
     url: string,
     timeoutMs?: number,
     waitMs?: number,
+    nativeUrlRegex?: string,
   ) => Promise<WebviewResponse>;
   receiveWebviewResponse: (id: string, payload: WebviewResponse) => void;
 }
@@ -90,6 +93,7 @@ export const useExtractorServiceStore = create<ExtractorServiceState>()(
       url: string,
       timeoutMs: number = 20000,
       waitMs: number = 1500,
+      nativeUrlRegex?: string,
     ) => {
       const id = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
       console.log(
@@ -97,6 +101,8 @@ export const useExtractorServiceStore = create<ExtractorServiceState>()(
         id,
         url,
         waitMs,
+        'nativeUrlRegex:',
+        nativeUrlRegex,
       );
 
       // Ensure the timeout cannot fire before the requested waitMs elapses.
@@ -113,7 +119,13 @@ export const useExtractorServiceStore = create<ExtractorServiceState>()(
           latestPayload: {videos: [], subtitles: []} as WebviewResponse,
           deferredTimer: null as any,
           fallbackTimeout: null as any,
-          request: {id, url, waitMs, startTime: Date.now()} as WebviewRequest,
+          request: {
+            id,
+            url,
+            waitMs,
+            nativeUrlRegex,
+            startTime: Date.now(),
+          } as WebviewRequest,
         };
         webviewResolvers[id] = resolverObj;
         set({currentWebviewRequest: resolverObj.request});
