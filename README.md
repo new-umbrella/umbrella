@@ -241,3 +241,4 @@ For an example of how a plugin file should be structured can be found in [exampl
 #### 📩 Email: wuxnz.dev@gmail.com
 
 #### 🌍 GitHub: wuxnz
+
