@@ -8,7 +8,7 @@ This project is designed for **extensibility, security, and scalability**, makin
 
 ## 🔥 Features
 
-- **Plugin System** 🧩: Dynamically download and execute JavaScript plugins through the package [nodejs-mobile-react-native](https://github.com/nodejs-mobile/nodejs-mobile-react-native) and through the package [vm2](<[https://github.com/nodejs-mobile/nodejs-mobile-react-native](https://github.com/patriksimek/vm2)>).
+- **Plugin System** 🧩: Dynamically download and execute JavaScript plugins through the package [nodejs-mobile-react-native](https://github.com/nodejs-mobile/nodejs-mobile-react-native) and through the package [vm2](https://github.com/patriksimek/vm2).
 - **Sandboxed Execution** 🛡️: Secure Node.js environment for running untrusted code.
 - **CLEAN + MVVM Architecture** 🏗️: Maintainable and scalable design pattern.
 - **Web Scraping Support** 🌐: Utilize `Node.js`.
@@ -70,7 +70,15 @@ This project is designed for **extensibility, security, and scalability**, makin
 
 ---
 
-## 📸 Screenshots
+## � Work in Progress
+
+- **New UI Refresh (MD3)**: Revamping screens and navigation with a modern Material Design 3-inspired look and improved layouts. Status: In progress.
+- **Native WebView Interception + Adblock (Android)**: A custom intercepting WebView that captures media/network requests via a native component (`RNInterceptWebViewAndroid`) with DOM-hooking fallback and message bridge. Integrates `@ghostery/adblocker` prebuilt filters to drop ads/trackers before following links. See `src/core/shared/components/intercepting-webview/` and `src/data/services/extractor/presentation/components/ExtractSourcesBottomSheet.tsx`. Status: In progress.
+- **New Video Player**: Fullscreen immersive mode, playback speed controls, auto-hiding controls, screen lock, and subtitle selection. See `src/features/media/presentation/views/VideoPlayer.tsx` and `src/features/media/presentation/components/VideoPlayerControls.tsx`. Status: In progress.
+
+---
+
+## �📸 Screenshots
 
 | Splash Screen                                                                                            | Plugin List (No Plugins)                                                                             | Install Plugin Dialog                                                                      | Plugin Info Screen                                                                           |
 | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
@@ -117,7 +125,7 @@ This project follows the **CLEAN + MVVM** pattern to ensure separation of concer
 
 ```sh
 git clone https://github.com/wuxnz/umbrella.git
-cd umbrealla
+cd umbrella
 ```
 
 ### **2️⃣ Install Dependencies**
