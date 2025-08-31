@@ -1,4 +1,4 @@
-# ☂️ Umbrella: A Plugin-Based React Native App with Sandboxed Execution
+# ☂️ Umbrella: A Plugin-Based Media React Native App with Sandboxed Execution
 
 A modular **React Native** application featuring a **plugin-based architecture** that allows dynamic downloading and execution of JavaScript plugins in a secure **Node.js sandbox**.
 
