@@ -1,8 +1,8 @@
 import React from 'react';
-import {View, StyleSheet, TouchableOpacity, Text} from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import Slider from '@react-native-community/slider';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import {Subtitle} from '../../../plugins/data/model/media/Subtitle';
+import { Subtitle } from '../../../plugins/data/model/media/Subtitle';
 
 interface VideoPlayerControlsProps {
   isPlaying: boolean;
@@ -45,17 +45,17 @@ const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
   onMirror,
   subtitles = [],
   selectedSubtitle = null,
-  onSelectSubtitle = () => {},
+  onSelectSubtitle = () => { },
   isFullscreen = false,
-  onToggleFullscreen = () => {},
-  onEnterFullscreen = () => {},
-  onExitFullscreen = () => {},
+  onToggleFullscreen = () => { },
+  onEnterFullscreen = () => { },
+  onExitFullscreen = () => { },
   playbackRate = 1.0,
-  onPlaybackSpeedChange = () => {},
+  onPlaybackSpeedChange = () => { },
   isScreenLocked = false,
-  onScreenLockToggle = () => {},
+  onScreenLockToggle = () => { },
   controlsVisible = true,
-  onControlsInteraction = () => {},
+  onControlsInteraction = () => { },
 }) => {
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -86,7 +86,7 @@ const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
     <View
       style={[
         styles.container,
-        isFullscreen && {width: '100%', height: '100%'},
+        isFullscreen && { width: '100%', height: '100%' },
       ]}
       onTouchStart={onControlsInteraction}>
       {/* Top Controls */}
@@ -132,30 +132,32 @@ const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
               ...styles.progressBarContainer,
               marginBottom: isFullscreen ? 16 : 0,
             }}>
-            {/* Background track */}
-            <View style={styles.progressTrack} />
-            {/* Buffered progress */}
-            <View
-              style={[
-                styles.bufferedProgress,
-                {width: `${bufferedProgress * 100}%`},
-              ]}
-            />
-            {/* Current progress */}
-            <View
-              style={[styles.currentProgress, {width: `${progress * 100}%`}]}
-            />
-            {/* Interactive overlay for seeking */}
-            <Slider
-              style={styles.progressSlider}
-              value={progress}
-              onValueChange={onSeek}
-              minimumTrackTintColor="transparent"
-              maximumTrackTintColor="transparent"
-              thumbTintColor="#E50914"
-              minimumValue={0}
-              maximumValue={1}
-            />
+            <View style={styles.progressBarInner}>
+              {/* Background track */}
+              <View style={styles.progressTrack} />
+              {/* Buffered progress */}
+              <View
+                style={[
+                  styles.bufferedProgress,
+                  { width: `${bufferedProgress * 100}%` },
+                ]}
+              />
+              {/* Current progress */}
+              <View
+                style={[styles.currentProgress, { width: `${progress * 100}%` }]}
+              />
+              {/* Interactive overlay for seeking */}
+              <Slider
+                style={styles.progressSlider}
+                value={progress}
+                onValueChange={onSeek}
+                minimumTrackTintColor="transparent"
+                maximumTrackTintColor="transparent"
+                thumbTintColor="#E50914"
+                minimumValue={0}
+                maximumValue={1}
+              />
+            </View>
           </View>
           <Text style={styles.timeText}>{formatTime(duration)}</Text>
         </View>
@@ -168,7 +170,7 @@ const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
           }}>
           <TouchableOpacity style={styles.bottomButton}>
             {/* <Icon name="volume-up" size={24} color="white" /> */}
-            <View style={{width: 24, height: 24}}></View>
+            <View style={{ width: 24, height: 24 }}></View>
           </TouchableOpacity>
 
           <View style={styles.bottomButtons}>
@@ -288,6 +290,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 0,
   },
+  progressBarInner: {
+    position: 'relative',
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+  },
   progressTrack: {
     position: 'absolute',
     left: 0,
@@ -295,7 +303,6 @@ const styles = StyleSheet.create({
     height: 4,
     backgroundColor: 'rgba(255,255,255,0.2)',
     borderRadius: 2,
-    marginHorizontal: 16,
   },
   bufferedProgress: {
     position: 'absolute',
@@ -304,7 +311,6 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     zIndex: 1,
     left: 0,
-    marginLeft: 16,
   },
   currentProgress: {
     position: 'absolute',
@@ -313,7 +319,6 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     zIndex: 2,
     left: 0,
-    marginLeft: 16,
   },
   progressSlider: {
     position: 'absolute',

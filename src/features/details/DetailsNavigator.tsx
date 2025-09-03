@@ -1,10 +1,10 @@
-import React, {useEffect, useState, useRef} from 'react';
-import {DetailsViewModel} from './presentation/viewmodels/DetailsViewModel';
-import {useNavigation, useRoute} from '@react-navigation/native';
+import React, { useEffect, useState, useRef } from 'react';
+import { DetailsViewModel } from './presentation/viewmodels/DetailsViewModel';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import DetailedItem from '../plugins/data/model/item/DetailedItem';
 import Status from '../../core/shared/types/Status';
-import {Plugin} from '../plugins/domain/entities/Plugin';
-import {ActivityIndicator, Text} from 'react-native-paper';
+import { Plugin } from '../plugins/domain/entities/Plugin';
+import { ActivityIndicator, Text } from 'react-native-paper';
 import {
   Alert,
   FlatList,
@@ -18,33 +18,34 @@ import {
   useColorScheme,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import {useTheme, Icon, Menu} from 'react-native-paper';
+import { useTheme, Icon, Menu } from 'react-native-paper';
 import CategorySwiper from '../../core/shared/components/CategorySwiper';
 import Category from '../plugins/data/model/item/Category';
 import SourceType from '../plugins/data/model/source/SourceType';
 import RawVideo from '../plugins/data/model/media/RawVideo';
-import {MediaToView} from '../media/domain/entities/MediaToView';
-import {LibraryViewModel} from '../library/presentation/viewmodels/LibraryViewModel';
+import { MediaToView } from '../media/domain/entities/MediaToView';
+import { LibraryViewModel } from '../library/presentation/viewmodels/LibraryViewModel';
 import {
   Favorite,
   FavoriteCategoryType,
 } from '../library/domain/entities/Favorite';
 import Item from '../plugins/data/model/item/Item';
-import {useFavoriteStore} from './presentation/state/useFavoriteStore';
-import {useExtractorServiceStore} from '../../data/services/extractor/presentation/state/ExtractorServiceStore';
+import { useFavoriteStore } from './presentation/state/useFavoriteStore';
+import { useExtractorServiceStore } from '../../data/services/extractor/presentation/state/ExtractorServiceStore';
 import BottomSheet from '@gorhom/bottom-sheet';
 import SystemNavigationBar from 'react-native-system-navigation-bar';
+import ExtractorVideo from '../plugins/data/model/media/ExtractorVideo';
 
 interface RouteParams {
   itemId: string;
   plugin: Plugin;
 }
 
-const {width, height} = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 const DetailsNavigator = () => {
   const route = useRoute();
-  const {itemId, plugin} = route.params as RouteParams;
+  const { itemId, plugin } = route.params as RouteParams;
 
   const [details, setDetails] = useState<DetailedItem | null>(null);
   const [loading, setLoading] = useState(true);
@@ -134,7 +135,7 @@ const DetailsNavigator = () => {
   const libraryViewModel = new LibraryViewModel();
   const favorites = libraryViewModel.getFavorites();
 
-  const {isFavorited, setItem, setVisible, visible} = useFavoriteStore();
+  const { isFavorited, setItem, setVisible, visible } = useFavoriteStore();
 
   const [favorite, setFavorite] = useState<Favorite | undefined>(undefined);
   const [isFavorite, setIsFavorite] = useState<boolean | null>(null);
@@ -217,6 +218,14 @@ const DetailsNavigator = () => {
     setRawSources(
       await detailsViewModel.getItemMedia(details!.media[index].id, plugin),
     );
+    // setRawSources(
+    //   [...rawSources, {
+    //     name: 'Universal Extractor',
+    //     url: details!.media[index].url,
+    //     type: 'ExtractorVideo',
+    //     headers: {},
+    //   } as ExtractorVideo]
+    // );
   };
 
   const handleEpisodePress = async (episodeIndex: number) => {
@@ -242,7 +251,7 @@ const DetailsNavigator = () => {
 
   if (loading) {
     return (
-      <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" />
       </View>
     );
@@ -250,7 +259,7 @@ const DetailsNavigator = () => {
 
   if (error) {
     return (
-      <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <Text>Error: {error}</Text>
       </View>
     );
@@ -258,7 +267,7 @@ const DetailsNavigator = () => {
 
   if (!details) {
     return (
-      <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <Text>No details available</Text>
       </View>
     );
@@ -282,8 +291,8 @@ const DetailsNavigator = () => {
 
           <LinearGradient
             colors={['transparent', 'rgba(0,0,0,1)']}
-            start={{x: 0, y: 0}}
-            end={{x: 0, y: 1}}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
             style={styles.gradient}
           />
 
@@ -422,7 +431,7 @@ const DetailsNavigator = () => {
                   </TouchableOpacity>
                 }>
                 {Array.from(
-                  {length: Math.ceil(details.media.length / itemsPerPage)},
+                  { length: Math.ceil(details.media.length / itemsPerPage) },
                   (_, i) => (
                     <Menu.Item
                       key={i}
@@ -451,8 +460,8 @@ const DetailsNavigator = () => {
                 return (
                   <TouchableOpacity
                     key={episode.id}
-                    // onPress={async () => await handleEpisodePress(globalIndex)}>
-                    onPress={() => handlePlay()}>
+                    // onPress={() => handlePlay()}>
+                    onPress={async () => await handleEpisodePress(globalIndex)}>
                     <View style={styles.episodeItem}>
                       <Text
                         style={{

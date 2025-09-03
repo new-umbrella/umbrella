@@ -40,6 +40,7 @@
     "react-native-file-viewer": "^2.1.5",
     "react-native-fs": "^2.20.0",
     "react-native-gesture-handler": "^2.22.1",
+    "react-native-intercepting-webview": "https://github.com/wuxnz/react-native-intercepting-webview.git#master",
     "react-native-linear-gradient": "^2.8.3",
     "react-native-orientation-locker": "^1.7.0",
     "react-native-paper": "^5.13.1",

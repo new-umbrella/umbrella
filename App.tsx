@@ -2,43 +2,43 @@ if (__DEV__) {
   require('./ReactotronConfig');
 }
 import './gesture-handler';
-import {useColorScheme, StatusBar, Alert, Linking, View} from 'react-native';
-import {PaperProvider} from 'react-native-paper';
+import { useColorScheme, StatusBar, Alert, Linking, View } from 'react-native';
+import { PaperProvider } from 'react-native-paper';
 
-import {DarkTheme, LightTheme} from './src/core/theme/theme';
-import {useEffect} from 'react';
+import { DarkTheme, LightTheme } from './src/core/theme/theme';
+import { useEffect } from 'react';
 import BottomNavigationBar from './src/navigation/BottomNavigationBar';
-import {NavigationContainer} from '@react-navigation/native';
-import {navigationRef, isReadyRef} from './RootNavigation';
-import {createNativeStackNavigator} from '@react-navigation/native-stack';
-import {SafeAreaProvider, SafeAreaView} from 'react-native-safe-area-context';
+import { NavigationContainer } from '@react-navigation/native';
+import { navigationRef, isReadyRef } from './RootNavigation';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import InstallPluginDialog from './src/core/shared/components/dialogs/InstallPluginDialog';
 import constants from './src/core/utils/constants';
 import SplashScreen from 'react-native-splash-screen';
 import DetailsNavigator from './src/features/details/DetailsNavigator';
-import {useProfileStore} from './src/features/profile/presentation/state/useProfileStore';
+import { useProfileStore } from './src/features/profile/presentation/state/useProfileStore';
 import ProfileNavigator from './src/features/profile/ProfileNavigator';
 import PluginInfoView from './src/features/plugins/presentation/views/PluginInfoView';
-import {ExtractorService} from './src/data/services/extractor/data/datasource/ExtractorService';
+import { ExtractorService } from './src/data/services/extractor/data/datasource/ExtractorService';
 import MediaType from './src/features/plugins/data/model/media/MediaType';
 import ExtractorVideo from './src/features/plugins/data/model/media/ExtractorVideo';
 
 import nodejs from 'nodejs-mobile-react-native';
-import {PluginViewModel} from './src/features/plugins/presentation/viewmodels/PluginsViewModel';
-import {GestureHandlerRootView} from 'react-native-gesture-handler';
-import {useInstallPluginDialogStore} from './src/features/plugins/presentation/state/useInstallPluginDialogStore';
+import { PluginViewModel } from './src/features/plugins/presentation/viewmodels/PluginsViewModel';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { useInstallPluginDialogStore } from './src/features/plugins/presentation/state/useInstallPluginDialogStore';
 import React from 'react';
 import ExtractorSourcesBottomSheet from './src/data/services/extractor/presentation/components/ExtractSourcesBottomSheet';
-import {useExtractorServiceStore} from './src/data/services/extractor/presentation/state/ExtractorServiceStore';
+import { useExtractorServiceStore } from './src/data/services/extractor/presentation/state/ExtractorServiceStore';
 import BottomSheet from '@gorhom/bottom-sheet';
-import {useSearchPageDataStore} from './src/features/search/presentation/state/useSearchPageDataStore';
+import { useSearchPageDataStore } from './src/features/search/presentation/state/useSearchPageDataStore';
 import PaginationBottomSheet from './src/features/search/presentation/components/PaginationBottomSheet';
-import {useFavoriteStore} from './src/features/details/presentation/state/useFavoriteStore';
+import { useFavoriteStore } from './src/features/details/presentation/state/useFavoriteStore';
 import FavoriteBottomSheet from './src/features/details/presentation/components/FavoriteBottomSheet';
 import MediaNavigator from './src/features/media/MediaNavigator';
-import {SystemBars} from 'react-native-edge-to-edge';
+import { SystemBars } from 'react-native-edge-to-edge';
 import SystemNavigationBar from 'react-native-system-navigation-bar';
-import {usePluginSelectorBottomSheetStore} from './src/features/home/presentation/state/usePluginSelectorBottomSheetStore';
+import { usePluginSelectorBottomSheetStore } from './src/features/home/presentation/state/usePluginSelectorBottomSheetStore';
 import PluginSelectorBottomSheet from './src/features/home/presentation/components/PluginSelectorBottomSheet';
 
 const Stack = createNativeStackNavigator();
@@ -74,6 +74,7 @@ export default function App() {
       setExtractorBottomSheetVisible(true);
       const result = await ExtractorService.extract({
         type: MediaType.ExtractorVideo,
+        // url: 'https://example.com',
         url: 'https://9animetv.to/watch/naruto-677?ep=12352',
         // url: 'https://gogoanimez.to/naruto-shippuden-episode-420/',
         // url: 'https://mysoap2day.net/movie/boruto-naruto-the-movie-2015-x13472011/watching/',
@@ -103,7 +104,7 @@ export default function App() {
     }
   }, [colorScheme]);
 
-  useEffect(() => {}, [colorScheme]);
+  useEffect(() => { }, [colorScheme]);
 
   useEffect(() => {
     return () => {
@@ -140,7 +141,7 @@ export default function App() {
   }, [installVisible]);
 
   useEffect(() => {
-    Linking.addEventListener('url', async ({url}) => {
+    Linking.addEventListener('url', async ({ url }) => {
       if (loading) {
         return;
       }
@@ -186,8 +187,7 @@ export default function App() {
                     console.error('Error fetching plugin:', error);
                     Alert.alert(
                       'Installation failed',
-                      `An unexpected error occurred during plugin fetch: ${
-                        error.message || error
+                      `An unexpected error occurred during plugin fetch: ${error.message || error
                       }`,
                     );
                   });
@@ -208,7 +208,7 @@ export default function App() {
     });
   }, []);
 
-  const {profiles, activeProfile} = useProfileStore(state => state);
+  const { profiles, activeProfile } = useProfileStore(state => state);
 
   const extractorBottomSheetRef = React.useRef<BottomSheet>(null);
 
@@ -224,7 +224,7 @@ export default function App() {
     }
   }, [extractorBottomSheetVisible]);
 
-  const {bottomSheetVisible: searchBottomSheetVisible} = useSearchPageDataStore(
+  const { bottomSheetVisible: searchBottomSheetVisible } = useSearchPageDataStore(
     state => state,
   );
 
@@ -236,7 +236,7 @@ export default function App() {
     }
   }, [searchBottomSheetVisible]);
 
-  const {visible: favoriteBottomSheetVisible} = useFavoriteStore(
+  const { visible: favoriteBottomSheetVisible } = useFavoriteStore(
     state => state,
   );
 
@@ -250,12 +250,12 @@ export default function App() {
 
   const pluginSelectorBottomSheetRef = React.useRef<BottomSheet>(null);
 
-  const {bottomSheetVisible: pluginSelectorBottomSheetVisible} =
+  const { bottomSheetVisible: pluginSelectorBottomSheetVisible } =
     usePluginSelectorBottomSheetStore(state => state);
 
   return (
     <SafeAreaProvider>
-      <SafeAreaView style={{flex: 1}}>
+      <SafeAreaView style={{ flex: 1 }}>
         <PaperProvider theme={colorScheme === 'dark' ? DarkTheme : LightTheme}>
           <NavigationContainer
             ref={navigationRef}
@@ -274,7 +274,7 @@ export default function App() {
                   : LightTheme.colors.background
               }
             /> */}
-            <GestureHandlerRootView style={{flex: 1}}>
+            <GestureHandlerRootView style={{ flex: 1 }}>
               <Stack.Navigator
                 screenOptions={{
                   headerShown: false,
