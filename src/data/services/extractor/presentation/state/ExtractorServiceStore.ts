@@ -16,6 +16,8 @@ type WebviewResponse = {
     error?: boolean;
     [key: string]: any;
   };
+  // Optional map of URL -> request headers captured by InterceptingWebView (onNativeMatch)
+  headersByUrl?: Record<string, Record<string, string>>;
 };
 
 interface WebviewRequest {

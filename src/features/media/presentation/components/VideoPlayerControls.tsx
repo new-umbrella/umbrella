@@ -327,11 +327,13 @@ const styles = StyleSheet.create({
     zIndex: 3,
     left: 0,
     right: 0,
+    top: 0,
     marginHorizontal: 0,
   },
   timeText: {
     color: 'white',
     fontSize: 12,
+    marginTop: -16,
   },
   bottomButtons: {
     flexDirection: 'row',

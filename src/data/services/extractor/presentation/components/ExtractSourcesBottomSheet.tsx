@@ -5,6 +5,7 @@ import {
   Linking,
   Image,
   DeviceEventEmitter,
+  Dimensions,
 } from 'react-native';
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { ScrollView } from 'react-native-gesture-handler';
@@ -146,6 +147,8 @@ const ExtractorSourcesBottomSheet = ({
   // Accumulate matches from native/DOM hooks and echo them to the store
   const matchedVideosRef = useRef<Set<string>>(new Set());
   const matchedSubtitlesRef = useRef<Set<string>>(new Set());
+  // Map of matched URL -> request headers captured from native match
+  const headersByUrlRef = useRef<Record<string, Record<string, string>>>({});
 
   // Track which probe URLs we've already followed per original request
   // to avoid re-following the same iframe/page multiple times.
@@ -158,6 +161,7 @@ const ExtractorSourcesBottomSheet = ({
   useEffect(() => {
     matchedVideosRef.current.clear();
     matchedSubtitlesRef.current.clear();
+    headersByUrlRef.current = {};
     setLastWebviewMessage(null);
   }, [currentWebviewRequest?.id]);
 
@@ -426,7 +430,7 @@ const ExtractorSourcesBottomSheet = ({
               <View
                 renderToHardwareTextureAndroid
                 needsOffscreenAlphaCompositing
-                style={{ height: 1, width: 1, opacity: 0 }}>
+                style={{ height: Dimensions.get('window').height, width: Dimensions.get('window').width, opacity: 0, position: 'absolute', zIndex: -9999 }}>
                 <InterceptingWebView
                   style={{ flex: 1 }}
                   source={{ uri: currentWebviewRequest.url }}
@@ -458,11 +462,16 @@ const ExtractorSourcesBottomSheet = ({
                     } catch (e) { }
                   }}
                   nativeUrlRegex={nativeUrlRegex.source}
-                  onNativeMatch={(matchedUrl: string) => {
+                  onNativeMatch={(e: any) => {
                     try {
-                      const url = String(matchedUrl || '').trim();
+                      const url = String(e?.request?.url || e?.url || '').trim();
                       if (!url) return;
                       if (isAllowedMediaUrl(url)) {
+                        // Capture request headers if available
+                        const hdrs = e.request?.headers;
+                        if (hdrs && typeof hdrs === 'object') {
+                          headersByUrlRef.current[url] = hdrs as Record<string, string>;
+                        }
                         const isSub = /\.(srt|vtt|ass|ssa|smi)(\?.*)?$/i.test(url.split('#')[0]);
                         if (isSub) {
                           matchedSubtitlesRef.current.add(url);
@@ -477,6 +486,7 @@ const ExtractorSourcesBottomSheet = ({
                           receiveWebviewResponse(currentWebviewRequest.id, {
                             videos: Array.from(matchedVideosRef.current),
                             subtitles: Array.from(matchedSubtitlesRef.current),
+                            headersByUrl: headersByUrlRef.current,
                             __meta: { postedAt: Date.now(), waitMs: currentWebviewRequest.waitMs ?? 1500 },
                           });
                         }

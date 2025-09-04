@@ -70,21 +70,21 @@ export default function App() {
   useEffect(() => {
     SplashScreen.hide();
     nodejs.start('main.js');
-    const extract = async () => {
-      setExtractorBottomSheetVisible(true);
-      const result = await ExtractorService.extract({
-        type: MediaType.ExtractorVideo,
-        // url: 'https://example.com',
-        url: 'https://9animetv.to/watch/naruto-677?ep=12352',
-        // url: 'https://gogoanimez.to/naruto-shippuden-episode-420/',
-        // url: 'https://mysoap2day.net/movie/boruto-naruto-the-movie-2015-x13472011/watching/',
-        // url: 'https://gogoanimes.fi/one-hundred-thousand-years-of-qi-refining-episode-250',
-        name: 'test',
-        iconUrl: 'https://www.svgrepo.com/show/433942/gear.svg',
-      } as ExtractorVideo);
-      console.log(result);
-    };
-    extract();
+    // const extract = async () => {
+    //   setExtractorBottomSheetVisible(true);
+    //   const result = await ExtractorService.extract({
+    //     type: MediaType.ExtractorVideo,
+    //     // url: 'https://example.com',
+    //     url: 'https://9animetv.to/watch/naruto-677?ep=12352',
+    //     // url: 'https://gogoanimez.to/naruto-shippuden-episode-420/',
+    //     // url: 'https://mysoap2day.net/movie/boruto-naruto-the-movie-2015-x13472011/watching/',
+    //     // url: 'https://gogoanimes.fi/one-hundred-thousand-years-of-qi-refining-episode-250',
+    //     name: 'test',
+    //     iconUrl: 'https://www.svgrepo.com/show/433942/gear.svg',
+    //   } as ExtractorVideo);
+    //   console.log(result);
+    // };
+    // extract();
     // nodejs.channel.addListener('message', message => {
     //   Alert.alert('From NodeJS', message);
     // });

@@ -7703,9 +7703,9 @@ react-native-gesture-handler@^2.22.1:
     hoist-non-react-statics "^3.3.0"
     invariant "^2.2.4"
 
-"react-native-intercepting-webview@https://github.com/wuxnz/react-native-intercepting-webview.git#master":
-  version "0.1.0"
-  resolved "https://github.com/wuxnz/react-native-intercepting-webview.git#b1d26335aa45f45a12249446a73d79335b332289"
+"react-native-intercepting-webview@git+https://github.com/wuxnz/react-native-intercepting-webview":
+  version "0.0.2"
+  resolved "git+https://github.com/wuxnz/react-native-intercepting-webview#e9fc62c916b01e72c99a43fc019f29e755479e74"
 
 react-native-is-edge-to-edge@^1.2.1:
   version "1.2.1"

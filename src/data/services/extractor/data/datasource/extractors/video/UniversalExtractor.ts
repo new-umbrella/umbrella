@@ -32,8 +32,9 @@ class UniversalExtractor implements Extractor {
   ): Promise<RawVideo[] | RawAudio[]> {
     console.log('UniversalExtractor.execute url:', data.url);
     // This extractor delegates extraction to the in-app hidden WebView
-    // which runs inside the ExtractSourcesBottomSheet component.
-    // The store helper (sendWebviewRequest) coordinates the request/response.
+    // which runs inside the `ExtractSourcesBottomSheet` component and uses
+    // `react-native-intercepting-webview` under the hood for network interception.
+    // The store helper (`sendWebviewRequest`) coordinates the request/response.
     try {
       // Dynamically import the extractor store module so this file doesn't
       // create circular import problems at module-eval time.
@@ -49,34 +50,14 @@ class UniversalExtractor implements Extractor {
           ? useExtractorServiceStore.getState()
           : useExtractorServiceStore;
 
-      // Detect availability of the in-repo InterceptWebView component so the
-      // hidden WebView can leverage native-like interception, adblock and autoplay.
-      // Require the local module at runtime so bundlers won't fail if it's absent.
-      let interceptingWebviewAvailable = false;
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const localMod = require('../../../../../../../core/shared/components/intercepting-webview');
-        if (
-          localMod &&
-          (localMod.InterceptWebView || localMod.default || localMod)
-        ) {
-          interceptingWebviewAvailable = true;
-        }
-      } catch (e) {
-        // ignore - optional local component
-      }
-      try {
-        console.log(
-          '[UniversalExtractor] InterceptWebView available:',
-          interceptingWebviewAvailable,
-        );
-      } catch (e) {}
+      // The hidden WebView is implemented with `react-native-intercepting-webview`.
+      // No need to probe for a legacy local component anymore.
 
       // If the store exposes sendWebviewRequest, use it. It will set a
       // currentWebviewRequest in the store and return a Promise that resolves
       // when the hidden WebView posts back the discovered URLs. The hidden
-      // WebView (ExtractSourcesBottomSheet) supports InterceptWebView which provides
-      // adblock/autoplay/native interception when available.
+      // WebView (ExtractSourcesBottomSheet) uses InterceptingWebView which provides
+      // adblock/autoplay/native interception.
       if (store && typeof store.sendWebviewRequest === 'function') {
         // Ensure the bottom sheet is visible (it hosts the hidden WebView) so interception works.
         try {
@@ -90,13 +71,13 @@ class UniversalExtractor implements Extractor {
         const timeoutMs = 20000; // give the webview up to 20s by default
         const waitMs = 10000; // let the page run its own detection for ~1.5s
         console.log(
-          '[UniversalExtractor] sendWebviewRequest (using InterceptWebView when available) url, timeoutMs, waitMs:',
+          '[UniversalExtractor] sendWebviewRequest (using InterceptingWebView when available) url, timeoutMs, waitMs:',
           data.url,
           timeoutMs,
           waitMs,
         );
         // Build a nativeUrlRegex string covering video+subtitle extensions so
-        // InterceptWebView's native matcher can report matches immediately.
+        // InterceptingWebView's native matcher can report matches immediately.
         const allExts = [
           ...(this.allVideoFileExtensions || []),
           ...(this.allSubtitleFileExtensions || []),
@@ -110,7 +91,7 @@ class UniversalExtractor implements Extractor {
           allExts && allExts.length ? `\\.(?:${allExts})(?:[?#]|$)` : undefined;
 
         // First attempt
-        let result: {videos: string[]; subtitles: string[]} =
+        let result: {videos: string[]; subtitles: string[]; headersByUrl?: Record<string, Record<string, string>>} =
           await store.sendWebviewRequest(
             data.url,
             timeoutMs,
@@ -152,12 +133,14 @@ class UniversalExtractor implements Extractor {
           const urlLower = String(u).toLowerCase();
           const p = String(u).split('?')[0].split('#')[0];
           const ext = p.split('.').pop() || '';
+          const headers = (result.headersByUrl && result.headersByUrl[u]) || undefined;
           return {
             name: this.name,
             type: MediaType.RawVideo,
             url: u,
             fileType: ext || undefined,
             isM3U8: urlLower.endsWith('.m3u8'),
+            ...(headers ? { headers } : {}),
           } as RawVideo;
         });
         console.log('Sources:', sources);
