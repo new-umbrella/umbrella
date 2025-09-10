@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,14 +6,16 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
-import {MediaToView} from './domain/entities/MediaToView';
+import { MediaToView } from './domain/entities/MediaToView';
 import VideoPlayer from './presentation/views/VideoPlayer';
-import {RouteProp, useRoute} from '@react-navigation/native';
-import MediaType from '../plugins/data/model/media/MediaType';
+import { RouteProp, useRoute } from '@react-navigation/native';
+import { Subtitle } from '../plugins/data/model/media/Subtitle';
 
 type MediaNavigatorParamList = {
   MediaViewer: {
-    media: MediaToView;
+    media: MediaToView[];
+    selectedMedia: MediaToView;
+    subtitles: Subtitle[];
   };
 };
 
@@ -47,12 +49,12 @@ const styles = StyleSheet.create({
 
 const MediaNavigator = () => {
   const {
-    params: {media},
+    params: { media, selectedMedia, subtitles },
   } = useRoute<MediaNavigatorRouteParams>();
   const [currentSourceIndex, setCurrentSourceIndex] = useState(0);
 
   const handleNextSource = () => {
-    if (currentSourceIndex < media.media.length - 1) {
+    if (currentSourceIndex < selectedMedia.media.length - 1) {
       setCurrentSourceIndex(currentSourceIndex + 1);
     }
   };
@@ -64,9 +66,9 @@ const MediaNavigator = () => {
   };
 
   const renderMediaPlayer = () => {
-    if (media.media.length === 0) {
+    if (selectedMedia.media.length === 0) {
       return (
-        <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator size="large" />
           <Text>Loading media...</Text>
         </View>
@@ -75,7 +77,8 @@ const MediaNavigator = () => {
 
     return (
       <>
-        <VideoPlayer media={media} />
+        {/* <VideoPlayer media={media} /> */}
+        <VideoPlayer media={media} selectedMedia={selectedMedia} subtitles={subtitles} />
       </>
     );
   };

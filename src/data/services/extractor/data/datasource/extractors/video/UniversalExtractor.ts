@@ -68,8 +68,8 @@ class UniversalExtractor implements Extractor {
         // Request the webview to load the page and return any discovered
         // video/subtitle URLs. Ensure timeout is larger than waitMs so the
         // webview has time to load and post results.
-        const timeoutMs = 20000; // give the webview up to 20s by default
-        const waitMs = 10000; // let the page run its own detection for ~1.5s
+        const timeoutMs = 7500; // give the webview up to 20s by default
+        const waitMs = 7500; // let the page run its own detection for ~1.5s
         console.log(
           '[UniversalExtractor] sendWebviewRequest (using InterceptingWebView when available) url, timeoutMs, waitMs:',
           data.url,

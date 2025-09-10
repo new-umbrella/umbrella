@@ -1,4 +1,4 @@
-import React, {useRef, useState, useEffect} from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -7,23 +7,30 @@ import {
   TouchableOpacity,
   Dimensions,
   FlatList,
+  Alert,
+  Linking,
 } from 'react-native';
-import {Appbar, Menu, Text, useTheme, Icon} from 'react-native-paper';
-import Video, {VideoRef} from 'react-native-video';
+import { Appbar, Menu, Text, useTheme, Icon } from 'react-native-paper';
+import Video, { VideoRef } from 'react-native-video';
 import VideoPlayerControls from '../components/VideoPlayerControls';
-import {MediaToView} from '../../domain/entities/MediaToView';
+import { MediaToView } from '../../domain/entities/MediaToView';
 import RawVideo from '../../../plugins/data/model/media/RawVideo';
-import {Subtitle} from '../../../plugins/data/model/media/Subtitle';
+import { Subtitle } from '../../../plugins/data/model/media/Subtitle';
 import ItemMedia from '../../../plugins/data/model/item/ItemMedia';
-import Orientation, {OrientationType} from 'react-native-orientation-locker';
+import Orientation, { OrientationType } from 'react-native-orientation-locker';
 import SystemNavigationBar from 'react-native-system-navigation-bar';
-import {useNavigation} from '@react-navigation/native';
-import {SystemBars} from 'react-native-edge-to-edge';
+import { useNavigation } from '@react-navigation/native';
+import { SystemBars } from 'react-native-edge-to-edge';
+import SendIntentAndroid from 'react-native-send-intent';
+import RNWebVideoCaster, { WebVideoCasterOptions } from 'rn-web-video-caster';
+import detectVideoMimeType from '../../../../core/utils/detectVideoMimeType';
 
 interface VideoPlayerProps {
   paused?: boolean;
   onEnd?: () => void;
-  media?: MediaToView;
+  media: MediaToView[];
+  selectedMedia: MediaToView;
+  subtitles: Subtitle[];
   isFullscreen?: boolean;
   onToggleFullscreen?: () => void;
   onEnterFullscreen?: () => void;
@@ -47,12 +54,14 @@ interface VideoPlayerControlsProps {
   onExitFullscreen?: () => void;
 }
 
-const {width, height} = Dimensions.get('screen');
+const { width, height } = Dimensions.get('screen');
 
 const VideoPlayer: React.FC<VideoPlayerProps> = ({
   paused = false,
   onEnd,
   media,
+  selectedMedia,
+  subtitles,
 }) => {
   const navigation = useNavigation();
 
@@ -91,6 +100,53 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     };
   }, []);
 
+  // Open current video in Web Video Caster
+  const handleOpenInWebVideoCaster = async () => {
+    try {
+      const current = selectedMedia?.media?.[selectedEpisode];
+      const title = `${selectedMedia?.details?.name ?? 'Video'} - ${current?.name ?? ''}`.trim();
+      const videoURL = current?.url ?? '';
+      if (!videoURL) return;
+
+      const isInstalled = await SendIntentAndroid.isAppInstalled('com.instantbits.cast.webvideo');
+      if (!isInstalled) {
+        Alert.alert(
+          'Web Video Cast is not installed, would you like to install it?',
+          'You can always install it later from the Play Store',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Install',
+              onPress: async () => {
+                try {
+                  await Linking.openURL('market://details?id=com.instantbits.cast.webvideo');
+                } catch { }
+              },
+            },
+          ],
+        );
+        return;
+      }
+
+      const options: WebVideoCasterOptions = {
+        videoURL,
+        title,
+        posterURL: current?.iconUrl,
+        headers: current?.headers ?? {},
+        subtitles: (current as any)?.subtitles ?? [],
+        hideVideoAddress: false,
+        position: Math.floor(currentTime) || 0,
+        filename: `${title}${videoURL.split('/').pop() ?? ''}`,
+        suppressErrorMessage: false,
+        mimeType: detectVideoMimeType(videoURL),
+      };
+      // Some versions expose .open without proper type definitions
+      await (RNWebVideoCaster as any).open(options);
+    } catch (e) {
+      try { console.warn('[VideoPlayer] Failed to open in Web Video Caster', e); } catch { }
+    }
+  };
+
   // Reset timer when playing state changes
   useEffect(() => {
     if (isPlaying && !isScreenLocked) {
@@ -120,11 +176,11 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     }
   };
 
-  const handleBuffer = (data: {isBuffering: boolean}) => {
+  const handleBuffer = (data: { isBuffering: boolean }) => {
     setIsBuffering(data.isBuffering);
   };
 
-  const handleLoad = (data: {duration: number}) => {
+  const handleLoad = (data: { duration: number }) => {
     setDuration(data.duration);
   };
 
@@ -202,7 +258,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [dimensions, setDimensions] = useState(Dimensions.get('window'));
 
   useEffect(() => {
-    const subscription = Dimensions.addEventListener('change', ({window}) => {
+    const subscription = Dimensions.addEventListener('change', ({ window }) => {
       setDimensions(window);
     });
     return () => subscription.remove();
@@ -238,7 +294,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const handleEpisodePress = (index: number) => {
     setSelectedEpisode(index);
     // TODO Handle Extraction
-    // if (media?.details?.media[index].url) {
+    // if (selectedMedia?.details?.media[index].url) {
     videoRef.current?.seek(0);
     // }
   };
@@ -273,8 +329,9 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       // Orientation.lockToLandscape();
       // Use SystemBars to hide the status bar when entering fullscreen to avoid
       // conflicts with react-native-edge-to-edge.
-      SystemBars.setHidden({statusBar: true, navigationBar: true});
-      await SystemNavigationBar.navigationHide();
+      SystemBars.setHidden({ statusBar: true, navigationBar: true });
+      // Use immersive to fully hide system navigation (gesture and 3-button)
+      await SystemNavigationBar.immersive();
       setIsFullscreen(true);
       // Orientation.lockToLandscapeLeft();
     };
@@ -283,14 +340,14 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     return () => {
       // Orientation.unlockAllOrientations();
       // Restore system bars visibility when exiting
-      SystemBars.setHidden({statusBar: false, navigationBar: false});
+      SystemBars.setHidden({ statusBar: false, navigationBar: false });
       SystemNavigationBar.navigationShow();
       setIsFullscreen(false);
       // Orientation.unlockAllOrientations();
     };
   }, []);
 
-  const renderEpisodeItem = ({item, index}: {item: any; index: number}) => (
+  const renderEpisodeItem = ({ item, index }: { item: any; index: number }) => (
     <TouchableOpacity
       style={[
         styles.episodeItem,
@@ -304,7 +361,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       }}>
       <Text style={styles.episodeNumber}>{index + 1}</Text>
       <Image
-        source={{uri: item.imageUrl || media?.details?.imageUrl}}
+        source={{ uri: item.imageUrl || selectedMedia?.details?.imageUrl }}
         // blurRadius={3}
         style={styles.episodeThumbnail}
       />
@@ -337,7 +394,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         // Hide status bar when fullscreen, always hide navigation bar for the
         // video player experience. Use the stack-based API so other components
         // don't unexpectedly override system bars.
-        hidden={{statusBar: isFullscreen, navigationBar: true}}
+        hidden={{ statusBar: isFullscreen, navigationBar: true }}
         style="light"
       />
       {/* Fullscreen Video Player Only */}
@@ -360,8 +417,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           <Video
             ref={videoRef}
             source={{
-              uri: media?.media?.[selectedEpisode]?.url || '',
-              headers: media?.media?.[selectedEpisode]?.headers || {},
+              uri: selectedMedia?.media?.[selectedEpisode]?.url || '',
+              headers: selectedMedia?.media?.[selectedEpisode]?.headers || {},
             }}
             paused={!isPlaying}
             rate={playbackRate}
@@ -390,11 +447,13 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
             bufferedProgress={bufferedProgress}
             currentTime={currentTime}
             duration={duration}
+            title={selectedMedia?.details?.name + ` Episode ${selectedMedia.index + 1} - ${selectedMedia?.media?.[selectedEpisode]?.name}`}
             onClose={handleClose}
+            onMirror={handleOpenInWebVideoCaster}
             onTogglePlay={handlePlayPause}
             onSeek={handleSeek}
             onSkipAndRewind={handleSkipAndRewind}
-            subtitles={[...(media?.media?.map((m: any) => m.subtitle) || [])]}
+            subtitles={[...(selectedMedia?.media?.map((m: any) => m.subtitle) || [])]}
             selectedSubtitle={selectedSubtitle}
             onSelectSubtitle={setSelectedSubtitle}
             isFullscreen={isFullscreen}
@@ -424,8 +483,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   //       <Video
   //         ref={videoRef}
   //         source={{
-  //           uri: media?.media?.[selectedEpisode]?.url || '',
-  //           headers: media?.media?.[selectedEpisode]?.headers || {},
+  //           uri: selectedMedia?.media?.[selectedEpisode]?.url || '',
+  //           headers: selectedMedia?.media?.[selectedEpisode]?.headers || {},
   //         }}
   //         paused={!isPlaying}
   //         rate={playbackRate}
@@ -457,7 +516,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   //         onTogglePlay={handlePlayPause}
   //         onSeek={handleSeek}
   //         onSkipAndRewind={handleSkipAndRewind}
-  //         subtitles={[...(media?.media?.map((m: any) => m.subtitle) || [])]}
+  //         subtitles={[...(selectedMedia?.media?.map((m: any) => m.subtitle) || [])]}
   //         selectedSubtitle={selectedSubtitle}
   //         onSelectSubtitle={setSelectedSubtitle}
   //         isFullscreen={isFullscreen}
@@ -473,7 +532,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   //   </View>
 
   //   {/* Media Info Section */}
-  //   {media?.details && (
+  //   {selectedMedia?.details && (
   //     <View style={styles.infoContainer}>
   //         <Text style={styles.title}>{media.details.name}</Text>
 
@@ -492,7 +551,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   //             </View>
   //           )}
   //           <Text style={styles.metaText}>
-  //             {media.details.media?.length || 1} Episodes
+  //             {media.details.selectedMedia?.length || 1} Episodes
   //           </Text>
   //         </View>
 
@@ -527,14 +586,14 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   //               <Text style={styles.seasonText}>
   //                 {`${currentPage * itemsPerPage + 1}-${Math.min(
   //                   (currentPage + 1) * itemsPerPage,
-  //                   media?.details?.media?.length || 0,
+  //                   selectedMedia?.details?.selectedMedia?.length || 0,
   //                 )}`}
   //               </Text>
   //               <Icon source="chevron-down" size={16} color="#fff" />
   //             </TouchableOpacity>
   //           }>
   //           {Array.from(
-  //             {length: Math.ceil((media?.details?.media?.length || 0) / itemsPerPage)},
+  //             {length: Math.ceil((selectedMedia?.details?.selectedMedia?.length || 0) / itemsPerPage)},
   //             (_, i) => (
   //               <Menu.Item
   //                 key={i}
@@ -544,7 +603,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   //                 }}
   //                 title={`${i * itemsPerPage + 1}-${Math.min(
   //                   (i + 1) * itemsPerPage,
-  //                   media?.details?.media?.length || 0,
+  //                   selectedMedia?.details?.selectedMedia?.length || 0,
   //                 )}`}
   //               />
   //             ),
@@ -552,7 +611,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   //         </Menu>
   //       </View>
 
-  //       {media?.details?.media
+  //       {selectedMedia?.details?.media
   //         ?.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage)
   //         .map((episode, index) => {
   //           const globalIndex = currentPage * itemsPerPage + index;
@@ -578,7 +637,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   //                 <Image
   //                   source={{
-  //                     uri: episode.imageUrl || media?.details.imageUrl,
+  //                     uri: episode.imageUrl || selectedMedia?.details.imageUrl,
   //                   }}
   //                   // blurRadius={3}
   //                   style={styles.episodeThumbnail}
@@ -832,7 +891,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: '50%',
     left: '50%',
-    transform: [{translateX: -100}, {translateY: -25}],
+    transform: [{ translateX: -100 }, { translateY: -25 }],
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
     paddingHorizontal: 20,
     paddingVertical: 10,

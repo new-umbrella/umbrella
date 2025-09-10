@@ -41,6 +41,7 @@ import { bridge as createBridge } from '@webview-bridge/react-native';
 import { WebViewMessageEvent } from 'react-native-webview';
 import { FiltersEngine, Request as AdblockRequest } from '@ghostery/adblocker';
 import { InterceptingWebView } from 'react-native-intercepting-webview';
+import { Subtitle } from '../../../../../features/plugins/data/model/media/Subtitle';
 
 const ExtractorSourcesBottomSheet = ({
   bottomSheetRef,
@@ -138,6 +139,8 @@ const ExtractorSourcesBottomSheet = ({
   const lastKickProgressRef = useRef<number>(0);
   // Timer ref used to fall back to enabling navigation when native intercept doesn't signal readiness.
   const nativeReadyTimeoutRef = useRef<any>(null);
+  // Guard: ensure extraction runs once per distinct rawSources batch
+  const processedSourcesTokenRef = useRef<string>('');
   // Keep last message from WebView for debugging UI
   const [lastWebviewMessage, setLastWebviewMessage] = useState<{
     videos: string[];
@@ -276,11 +279,27 @@ const ExtractorSourcesBottomSheet = ({
       setExtracting(false);
     };
 
-    if (!extracting && rawSources.length > 0) {
+    if (extracting) return;
+    if (rawSources.length > 0) {
+      // Compute a token representing this batch of rawSources (order-sensitive)
+      const token = (() => {
+        try {
+          return rawSources
+            .map((s: any) => `${s.type}|${s.url || ''}|${s.name || ''}`)
+            .join('||');
+        } catch (e) {
+          return String(rawSources.length);
+        }
+      })();
+      if (token && token === processedSourcesTokenRef.current) {
+        // Already processed this exact batch — skip
+        return;
+      }
+      processedSourcesTokenRef.current = token;
       doExtraction();
     }
-    // Re-run extraction when rawSources changes or extracting state changes
-  }, [rawSources, extracting]);
+    // Only react to rawSources changes to avoid loops from extracting toggles
+  }, [rawSources]);
 
   const openMedia = useCallback(
     async (
@@ -398,7 +417,7 @@ const ExtractorSourcesBottomSheet = ({
         }}>
         <BottomSheetView style={styles.bottomSheetOptions}>
           {/* Debug panel (visible) */}
-          <View
+          {/* <View
             style={{
               padding: 8,
               backgroundColor: '#111',
@@ -419,7 +438,7 @@ const ExtractorSourcesBottomSheet = ({
               Last message:{' '}
               {lastWebviewMessage ? JSON.stringify(lastWebviewMessage) : 'none'}
             </Text>
-          </View>
+          </View> */}
 
           {/* Conditionally render WebView only when a request is active */}
           {currentWebviewRequest ? (
@@ -526,15 +545,35 @@ const ExtractorSourcesBottomSheet = ({
                   }
                   onPress={() => {
                     // Navigate to MediaNavigator with the selected source
-                    const mediaToView: MediaToView = {
+                    // const mediaToView: MediaToView = {
+                    //   type: (source.type === MediaType.RawVideo
+                    //     ? 'Video'
+                    //     : 'Audio') as MediaToView['type'],
+                    //   media: [source],
+                    //   details: detailedItem,
+                    //   index: 0,
+                    // };
+                    const media: MediaToView[] = sources.map((source, sourceIndex) => {
+                      return {
+                        type: (source.type === MediaType.RawVideo
+                          ? 'Video'
+                          : 'Audio') as MediaToView['type'],
+                        media: [source],
+                        details: detailedItem,
+                        index: sourceIndex,
+                      };
+                    });
+
+                    const selectedMedia: MediaToView = {
                       type: (source.type === MediaType.RawVideo
                         ? 'Video'
                         : 'Audio') as MediaToView['type'],
                       media: [source],
                       details: detailedItem,
-                      index: 0,
+                      index: mediaIndex,
                     };
-                    (navigation as any).navigate('media', { media: mediaToView });
+                    const subtitles: Subtitle[] = [];
+                    (navigation as any).navigate('media', { media: media, selectedMedia: selectedMedia, subtitles: subtitles });
                   }}
                   onLongPress={() => {
                     setSelectedMedia(source);

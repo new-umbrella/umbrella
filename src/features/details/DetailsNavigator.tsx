@@ -112,7 +112,8 @@ const DetailsNavigator = () => {
     console.log('Play pressed for item:', itemId);
     // Implement play functionality
     (navigation as any).navigate('media' as unknown as never, {
-      media: {
+      media: [],
+      selectedMedia: {
         type: 'Video',
         media: [
           {
@@ -124,6 +125,7 @@ const DetailsNavigator = () => {
         details: details,
         index: 0,
       } as MediaToView,
+      subtitles: [],
     });
   };
 
@@ -216,16 +218,16 @@ const DetailsNavigator = () => {
       await detailsViewModel.getItemMedia(details!.media[index].id, plugin),
     );
     setRawSources(
+      [...rawSources, {
+        name: 'Universal Extractor',
+        url: details!.media[index].url,
+        type: 'ExtractorVideo',
+        headers: {},
+      } as ExtractorVideo]
+    );
+    setRawSources(
       await detailsViewModel.getItemMedia(details!.media[index].id, plugin),
     );
-    // setRawSources(
-    //   [...rawSources, {
-    //     name: 'Universal Extractor',
-    //     url: details!.media[index].url,
-    //     type: 'ExtractorVideo',
-    //     headers: {},
-    //   } as ExtractorVideo]
-    // );
   };
 
   const handleEpisodePress = async (episodeIndex: number) => {

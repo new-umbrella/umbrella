@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import Slider from '@react-native-community/slider';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import { Icon } from 'react-native-paper';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { Subtitle } from '../../../plugins/data/model/media/Subtitle';
 
 interface VideoPlayerControlsProps {
@@ -75,7 +76,13 @@ const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
         <TouchableOpacity
           style={styles.unlockButton}
           onPress={onScreenLockToggle}>
-          <Icon name="lock" size={32} color="white" />
+          <Icon
+            size={32}
+            color="#FFFFFF"
+            source={(props: { size?: number; color?: string }) => (
+              <MaterialIcons name="lock" size={props.size ?? 32} color={props.color ?? '#FFFFFF'} />
+            )}
+          />
           {/* <Text style={styles.unlockText}>Tap to unlock</Text> */}
         </TouchableOpacity>
       </View>
@@ -91,35 +98,69 @@ const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
       onTouchStart={onControlsInteraction}>
       {/* Top Controls */}
       <View style={styles.topControls}>
-        <TouchableOpacity onPress={onClose} style={styles.topButton}>
-          <Icon name="arrow-back" size={24} color="white" />
+        {/* <View style={styles.titleContainer}> */}
+        <Text style={styles.titleText}>{title || ''}</Text>
+        {/* </View> */}
+        <TouchableOpacity onPress={onMirror} style={styles.topIconButton}>
+          <Icon
+            size={18}
+            color="#FFFFFF"
+            source={(props: { size?: number; color?: string }) => (
+              <MaterialIcons name="cast" size={props.size ?? 18} color={props.color ?? '#FFFFFF'} />
+            )}
+          />
         </TouchableOpacity>
-        <TouchableOpacity onPress={onMirror} style={styles.topButton}>
-          <Icon name="cast" size={24} color="white" />
-        </TouchableOpacity>
+        {/* <TouchableOpacity onPress={onClose} style={styles.topIconButton}>
+          <Icon
+            size={18}
+            color="#FFFFFF"
+            source={(props: { size?: number; color?: string }) => (
+              <MaterialIcons name="close" size={props.size ?? 18} color={props.color ?? '#FFFFFF'} />
+            )}
+          />
+        </TouchableOpacity> */}
       </View>
 
       {/* Title */}
-      {title && (
-        <View style={styles.titleContainer}>
-          <Text style={styles.titleText}>{title}</Text>
-        </View>
-      )}
 
       {/* Center Play Controls */}
       <View style={styles.centerControls}>
-        <TouchableOpacity onPress={() => onSkipAndRewind(currentTime - 10)}>
-          <Icon name="replay-10" size={36} color="white" />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={onTogglePlay} style={styles.playButton}>
+        <TouchableOpacity
+          onPress={() => onSkipAndRewind(currentTime - 10)}
+          style={styles.circleButton40}
+        >
           <Icon
-            name={isPlaying ? 'pause' : 'play-arrow'}
-            size={48}
-            color="white"
+            size={36}
+            color="#FFFFFF"
+            source={(props: { size?: number; color?: string }) => (
+              <MaterialIcons name="replay-10" size={props.size ?? 24} color={props.color ?? '#FFFFFF'} />
+            )}
           />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => onSkipAndRewind(currentTime + 10)}>
-          <Icon name="forward-10" size={36} color="white" />
+        <TouchableOpacity onPress={onTogglePlay} style={styles.circleButton42Shadow}>
+          <Icon
+            size={48}
+            color="#FFFFFF"
+            source={(props: { size?: number; color?: string }) => (
+              <MaterialIcons
+                name={isPlaying ? 'pause' : 'play-arrow'}
+                size={props.size ?? 24}
+                color={props.color ?? '#FFFFFF'}
+              />
+            )}
+          />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => onSkipAndRewind(currentTime + 10)}
+          style={styles.circleButton40}
+        >
+          <Icon
+            size={36}
+            color="#FFFFFF"
+            source={(props: { size?: number; color?: string }) => (
+              <MaterialIcons name="forward-10" size={props.size ?? 24} color={props.color ?? '#FFFFFF'} />
+            )}
+          />
         </TouchableOpacity>
       </View>
 
@@ -127,11 +168,7 @@ const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
       <View style={styles.bottomControls}>
         <View style={styles.progressContainer}>
           <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
-          <View
-            style={{
-              ...styles.progressBarContainer,
-              marginBottom: isFullscreen ? 16 : 0,
-            }}>
+          <View style={styles.progressBarContainer}>
             <View style={styles.progressBarInner}>
               {/* Background track */}
               <View style={styles.progressTrack} />
@@ -153,7 +190,7 @@ const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
                 onValueChange={onSeek}
                 minimumTrackTintColor="transparent"
                 maximumTrackTintColor="transparent"
-                thumbTintColor="#E50914"
+                thumbTintColor="#D22F26"
                 minimumValue={0}
                 maximumValue={1}
               />
@@ -161,56 +198,50 @@ const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
           </View>
           <Text style={styles.timeText}>{formatTime(duration)}</Text>
         </View>
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            paddingBottom: 20, //isFullscreen ? 20 : 0,
-          }}>
-          <TouchableOpacity style={styles.bottomButton}>
-            {/* <Icon name="volume-up" size={24} color="white" /> */}
-            <View style={{ width: 24, height: 24 }}></View>
-          </TouchableOpacity>
+        <View style={styles.bottomRow}>
+          <View style={styles.actionsRowGrid}>
+            <TouchableOpacity style={styles.actionSlot} onPress={onPlaybackSpeedChange}>
+              <Icon
+                size={21}
+                color={playbackRate !== 1.0 ? '#D22F26' : '#FFFFFF'}
+                source={(props: { size?: number; color?: string }) => (
+                  <MaterialIcons name="speed" size={props.size ?? 21} color={props.color ?? '#FFFFFF'} />
+                )}
+              />
+              <Text style={styles.captionText}>{`Speed (${playbackRate}x)`}</Text>
+            </TouchableOpacity>
 
-          <View style={styles.bottomButtons}>
-            <TouchableOpacity
-              style={styles.bottomButton}
-              onPress={onPlaybackSpeedChange}>
+            <TouchableOpacity style={styles.actionSlot} onPress={onScreenLockToggle}>
               <Icon
-                name="speed"
-                size={24}
-                color={playbackRate !== 1.0 ? '#E50914' : 'white'}
+                size={21}
+                color={isScreenLocked ? '#D22F26' : '#FFFFFF'}
+                source={(props: { size?: number; color?: string }) => (
+                  <MaterialIcons name={isScreenLocked ? 'lock' : 'lock-open'} size={props.size ?? 21} color={props.color ?? '#FFFFFF'} />
+                )}
               />
-              {/* {playbackRate !== 1.0 && (
-                <Text style={styles.speedText}>{playbackRate}x</Text>
-              )} */}
+              <Text style={styles.captionText}>Lock</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.bottomButton}
-              onPress={onScreenLockToggle}>
-              <Icon
-                name={isScreenLocked ? 'lock' : 'lock-open'}
-                size={24}
-                color={isScreenLocked ? '#E50914' : 'white'}
-              />
-            </TouchableOpacity>
-            {subtitles.length > 0 && (
+
+            {subtitles.length > 0 ? (
               <TouchableOpacity
-                style={styles.bottomButton}
-                onPress={() =>
-                  onSelectSubtitle(selectedSubtitle ? null : subtitles[0])
-                }>
+                style={styles.actionSlot}
+                onPress={() => onSelectSubtitle(selectedSubtitle ? null : subtitles[0])}
+              >
                 <Icon
-                  name="subtitles"
-                  size={24}
-                  color={selectedSubtitle ? '#E50914' : 'white'}
+                  size={21}
+                  color={selectedSubtitle ? '#D22F26' : '#FFFFFF'}
+                  source={(props: { size?: number; color?: string }) => (
+                    <MaterialIcons name="subtitles" size={props.size ?? 21} color={props.color ?? '#FFFFFF'} />
+                  )}
                 />
+                <Text style={styles.captionText}>Audio & Subtitles</Text>
               </TouchableOpacity>
+            ) : (
+              <View style={styles.actionSlot} />
             )}
           </View>
 
-          <TouchableOpacity
+          {/* <TouchableOpacity
             style={styles.bottomButton}
             onPress={() => {
               onToggleFullscreen();
@@ -219,13 +250,20 @@ const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
               } else {
                 onEnterFullscreen();
               }
-            }}>
+            }}
+          >
             <Icon
-              name={isFullscreen ? 'fullscreen-exit' : 'fullscreen'}
               size={24}
-              color="white"
+              color="#FFFFFF"
+              source={(props: { size?: number; color?: string }) => (
+                <MaterialIcons
+                  name={isFullscreen ? 'fullscreen-exit' : 'fullscreen'}
+                  size={props.size ?? 24}
+                  color={props.color ?? '#FFFFFF'}
+                />
+              )}
             />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
       </View>
     </View>
@@ -245,11 +283,17 @@ const styles = StyleSheet.create({
   },
   topControls: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
     padding: 16,
   },
-  topButton: {
-    padding: 8,
+  topIconButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   titleContainer: {
     position: 'absolute',
@@ -260,16 +304,36 @@ const styles = StyleSheet.create({
   },
   titleText: {
     color: 'white',
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '500',
+    letterSpacing: -0.25,
   },
   centerControls: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  playButton: {
-    marginHorizontal: 40,
+  circleButton40: {
+    width: 50,
+    height: 50,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 78,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  circleButton42Shadow: {
+    width: 56,
+    height: 56,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    shadowColor: '#000',
+    shadowOpacity: 0.87,
+    shadowRadius: 16,
+    shadowOffset: { width: 4, height: 4 },
+    elevation: 8,
   },
   bottomControls: {
     padding: 16,
@@ -277,10 +341,7 @@ const styles = StyleSheet.create({
   progressContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  progressBar: {
-    flex: 1,
-    marginHorizontal: 8,
+    marginBottom: 16,
   },
   progressBarContainer: {
     flex: 1,
@@ -307,7 +368,7 @@ const styles = StyleSheet.create({
   bufferedProgress: {
     position: 'absolute',
     height: 4,
-    backgroundColor: 'rgba(175, 175, 175, 0.8)',
+    backgroundColor: '#BFBFBF',
     borderRadius: 2,
     zIndex: 1,
     left: 0,
@@ -315,7 +376,7 @@ const styles = StyleSheet.create({
   currentProgress: {
     position: 'absolute',
     height: 4,
-    backgroundColor: '#E50914',
+    backgroundColor: '#D22F26',
     borderRadius: 2,
     zIndex: 2,
     left: 0,
@@ -332,27 +393,43 @@ const styles = StyleSheet.create({
   },
   timeText: {
     color: 'white',
-    fontSize: 12,
-    marginTop: -16,
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: '300',
+    letterSpacing: -0.25,
   },
-  bottomButtons: {
+  bottomRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: 20,
+  },
+  actionsRowGrid: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-evenly',
+    paddingRight: 16,
+  },
+  actionSlot: {
+    // flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  labeledAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  captionText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '500',
+    letterSpacing: -0.25,
+    marginLeft: 7,
   },
   bottomButton: {
     padding: 8,
     marginHorizontal: 16,
-  },
-  speedText: {
-    color: '#E50914',
-    fontSize: 10,
-    fontWeight: 'bold',
-    position: 'absolute',
-    bottom: -2,
-    right: -2,
-    backgroundColor: 'rgba(0,0,0,0.8)',
-    paddingHorizontal: 2,
-    borderRadius: 2,
   },
   lockedContainer: {
     justifyContent: 'flex-end',
@@ -363,8 +440,6 @@ const styles = StyleSheet.create({
   unlockButton: {
     alignItems: 'center',
     padding: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    borderRadius: 8,
   },
   unlockText: {
     color: 'white',
