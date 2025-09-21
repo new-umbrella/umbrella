@@ -4,7 +4,7 @@
   <p>A modular <strong>React Native</strong> application featuring a <strong>plugin-based architecture</strong> that allows dynamic downloading and execution of JavaScript plugins in a secure <strong>Node.js sandbox</strong>.</p>
 
   <p>
-    <a href="https://umbrella-theta.vercel.app/" target="_blank">🌐 Website</a> •
+    <a href="https://www.umbrella-app.xyz" target="_blank">🌐 Website</a> •
     <a href="https://github.com/new-umbrella/umbrella/releases">⬇️ Download</a>
   </p>
 
