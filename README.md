@@ -7,9 +7,9 @@
     <a href="https://umbrella-theta.vercel.app/" target="_blank">🌐 Website</a> •
     <a href="https://github.com/new-umbrella/umbrella/releases">⬇️ Download</a>
   </p>
-</div>
 
-This project is designed for **extensibility, security, and scalability**, making it easy to add new functionalities without modifying the core codebase.
+  <p>This project is designed for <strong>extensibility, security, and scalability</strong>, making it easy to add new functionalities without modifying the core codebase.</p>
+</div>
 
 ---
 
