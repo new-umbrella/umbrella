@@ -1,6 +1,13 @@
 # ☂️ Umbrella: A Plugin-Based Media React Native App with Sandboxed Execution
 
-A modular **React Native** application featuring a **plugin-based architecture** that allows dynamic downloading and execution of JavaScript plugins in a secure **Node.js sandbox**.
+<div align="center">
+  <p>A modular <strong>React Native</strong> application featuring a <strong>plugin-based architecture</strong> that allows dynamic downloading and execution of JavaScript plugins in a secure <strong>Node.js sandbox</strong>.</p>
+
+  <p>
+    <a href="https://umbrella-theta.vercel.app/" target="_blank">🌐 Website</a> •
+    <a href="https://github.com/new-umbrella/umbrella/releases">⬇️ Download</a>
+  </p>
+</div>
 
 This project is designed for **extensibility, security, and scalability**, making it easy to add new functionalities without modifying the core codebase.
 
