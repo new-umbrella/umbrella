@@ -1,5 +1,5 @@
 // import ContentService from './ContentService';
-import SourceType from './source/SourceType';
+import { SourceType } from './source/SourceType';
 
 // Plugin
 // This is the interface for a plugin

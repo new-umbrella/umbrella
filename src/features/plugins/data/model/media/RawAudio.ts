@@ -5,6 +5,7 @@ interface RawAudio {
   type: MediaType.RawAudio;
   url: string;
   name: string;
+  language?: string;
   iconUrl?: string;
   fileType?: string;
   headers?: Record<string, string>;

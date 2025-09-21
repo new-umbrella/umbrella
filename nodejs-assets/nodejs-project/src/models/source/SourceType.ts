@@ -1,4 +1,4 @@
-enum SourceType {
+export enum SourceType {
   Audio = 'Audio',
   Image = 'Image',
   Live = 'Live',
@@ -11,4 +11,3 @@ export function toSourceType(type: string): string {
   return SourceType[SourceType[type as keyof typeof SourceType]];
 }
 
-export default SourceType;

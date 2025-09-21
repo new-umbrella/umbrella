@@ -1,6 +1,6 @@
-import Item from './Item';
+import { Item } from './Item';
 
-interface Category {
+export interface Category {
   name: string;
   description?: string;
   url: string;
@@ -8,5 +8,3 @@ interface Category {
   getNextPage?: (page: number) => Promise<Item[]>;
   items: Item[];
 }
-
-export default Category;

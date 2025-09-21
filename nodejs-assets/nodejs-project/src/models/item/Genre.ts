@@ -1,6 +1,6 @@
-import Item from './Item';
+import { Item } from './Item';
 
-interface Genre {
+export interface Genre {
   name: string;
   description: string | undefined;
   url: string;
@@ -8,5 +8,3 @@ interface Genre {
   getNextPage?: (page: number) => Promise<Item[]>;
   items: Item[];
 }
-
-export default Genre;

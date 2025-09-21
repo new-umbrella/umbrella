@@ -1,12 +1,12 @@
-import Source from '../source/Source';
+import {Source} from '../source/Source';
+import {SourceType} from '../source/SourceType';
 
-interface Item {
+export interface Item {
   id: string;
   name: string;
   description?: string;
   imageUrl: string;
   url: string;
-  source: Plugin;
+  type: SourceType;
+  source?: Plugin;
 }
-
-export default Item;

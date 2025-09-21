@@ -1,6 +1,6 @@
-import RawVideo from '../media/RawVideo';
+import { RawVideo } from '../media/RawVideo';
 
-interface Extractor {
+export interface Extractor {
   id: string;
   name: string;
   description: string;

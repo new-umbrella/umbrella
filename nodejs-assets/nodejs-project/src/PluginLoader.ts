@@ -1,12 +1,15 @@
-import ContentService from './models/ContentService';
-import Category from './models/item/Category';
-import DetailedItem from './models/item/DetailedItem';
 import vm from 'vm';
 import fs from 'fs';
-import RawVideo from './models/media/RawVideo';
-import RawAudio from './models/media/RawAudio';
-import ExtractorVideo from './models/media/ExtractorVideo';
-import ExtractorAudio from './models/media/ExtractorAudio';
+
+import {
+  Category,
+  DetailedItem,
+  ContentService,
+  ExtractorAudio,
+  ExtractorVideo,
+  RawAudio,
+  RawVideo,
+} from './models';
 
 export class PluginLoader {
   private pluginPath: string;
@@ -18,7 +21,7 @@ export class PluginLoader {
   loadPlugin(): ContentService {
     // Initialize Node.js modules with error handling
     let CryptoJS: any = null;
-    let Cheerio: any = null;
+    let cheerio: any = null;
 
     try {
       CryptoJS = require('crypto-js');
@@ -28,7 +31,7 @@ export class PluginLoader {
     }
 
     try {
-      Cheerio = require('cheerio');
+      cheerio = require('cheerio');
       console.log('Cheerio loaded successfully');
     } catch (err) {
       console.error('Failed to load cheerio:', err);
@@ -40,9 +43,9 @@ export class PluginLoader {
       fetch,
       require, // Basic Node.js require for built-in modules like 'buffer'
       CryptoJS, // Regular CryptoJS
-      Cheerio, // Regular Cheerio
+      cheerio, // Regular Cheerio
       exports: {},
-      builtin: ['*'],
+      builtin: ['fetch'],
       module: {exports: {}},
     };
 

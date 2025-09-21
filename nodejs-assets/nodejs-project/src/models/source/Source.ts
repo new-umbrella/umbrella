@@ -1,6 +1,6 @@
-import SourceType from './SourceType';
+import { SourceType } from './SourceType';
 
-interface Source {
+export interface Source {
   sourceType: SourceType;
   author?: string;
   name: string;
@@ -13,5 +13,3 @@ interface Source {
   pluginPath?: string;
   pluginUrl?: string;
 }
-
-export default Source;
